@@ -14,7 +14,7 @@ import spray.json._
 import net.ruippeixotog.scalafbp.protocol.Message._
 import net.ruippeixotog.scalafbp.protocol.registry
 import net.ruippeixotog.scalafbp.protocol.registry.RegistryClient
-import net.ruippeixotog.scalafbp.runtime.FbpRuntimeActor
+import net.ruippeixotog.scalafbp.runtime.MainProtocolActor
 import net.ruippeixotog.scalafbp.ws.SubscriptionManagerActor._
 import net.ruippeixotog.scalafbp.ws.{ SubscriptionManagerActor, WsUtils }
 
@@ -23,7 +23,7 @@ object WebServer extends App with WsUtils with SLF4JLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  val fbpRuntimeActor = system.actorOf(Props(new FbpRuntimeActor))
+  val fbpRuntimeActor = system.actorOf(Props(new MainProtocolActor))
   val wsManagerActor = system.actorOf(Props(new SubscriptionManagerActor(fbpRuntimeActor)))
 
   def fbpRuntimeFlow(id: String): Flow[Message, Message, Any] = {

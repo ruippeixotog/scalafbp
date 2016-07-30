@@ -6,8 +6,6 @@ import spray.json.JsValue
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
 
-import spray.json.DefaultJsonProtocol._
-
 case object Repeat extends Component {
   val name = "core/Repeat"
   val description = "Forwards packets and metadata in the same way it receives them"

@@ -4,11 +4,13 @@ import akka.actor._
 
 import net.ruippeixotog.scalafbp.protocol._
 
-class FbpRuntimeActor extends Actor {
+class MainProtocolActor extends Actor {
+  val logicActor = context.actorOf(Props(new LogicActor))
+
   val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor))
   val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor))
-  val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor))
-  val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor))
+  val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(logicActor)))
+  val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(logicActor)))
 
   def receive = {
     case Runtime(payload) => runtimeProtocolActor.forward(payload)

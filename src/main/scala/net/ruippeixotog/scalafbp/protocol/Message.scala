@@ -64,7 +64,7 @@ object GraphMessages {
   case class AddNode(
     id: String,
     component: String,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
@@ -75,7 +75,7 @@ object GraphMessages {
 
   case class ChangeNode(
     id: String,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
@@ -87,7 +87,7 @@ object GraphMessages {
   case class AddEdge(
     src: Edge,
     tgt: Edge,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
@@ -100,16 +100,16 @@ object GraphMessages {
   case class ChangeEdge(
     src: Edge,
     tgt: Edge,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
-  case class Initial(data: Int)
+  case class Initial(data: JsValue)
 
   case class AddInitial(
     src: Initial,
     tgt: Edge,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
@@ -122,7 +122,7 @@ object GraphMessages {
     public: String,
     node: String,
     port: String,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 
@@ -130,7 +130,7 @@ object GraphMessages {
     public: String,
     node: String,
     port: String,
-    metadata: Option[Map[String, String]],
+    metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends Payload
 }
@@ -245,7 +245,9 @@ object TraceMessages {
 
 object Message {
   private object JsonProtocol extends DefaultJsonProtocol with FamilyFormats with CustomJsonFormatHints {
+    implicit val jsValueJsonFormat = JsValueFormat // to help the compiler find the implicit for RootJsonformat[Message]
     implicit val messageCoproductHint = new MessageCoproductHint("protocol", "command", "payload")
+
     val messageJsonFormat: RootJsonFormat[Message] = cachedImplicit
     //      val messageJsonFormat: RootJsonFormat[Message] = implicitly[RootJsonFormat[Message]]
   }
