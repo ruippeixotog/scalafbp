@@ -8,13 +8,13 @@ sealed trait Message {
   def payload: Any
 }
 
-case class Runtime(payload: RuntimeMessages.Payload) extends Message
-case class Graph(payload: GraphMessages.Payload) extends Message
-case class Component(payload: ComponentMessages.Payload) extends Message
-case class Network(payload: NetworkMessages.Payload) extends Message
-case class Trace(payload: TraceMessages.Payload) extends Message
+private[protocol] case class Runtime(payload: RuntimeMessages.Payload) extends Message
+private[protocol] case class Graph(payload: GraphMessages.Payload) extends Message
+private[protocol] case class Component(payload: ComponentMessages.Payload) extends Message
+private[protocol] case class Network(payload: NetworkMessages.Payload) extends Message
+private[protocol] case class Trace(payload: TraceMessages.Payload) extends Message
 
-object RuntimeMessages {
+private[protocol] object RuntimeMessages {
   sealed trait Payload
 
   case class GetRuntime(
@@ -49,7 +49,7 @@ object RuntimeMessages {
     secret: String) extends Payload
 }
 
-object GraphMessages {
+private[protocol] object GraphMessages {
   sealed trait Payload
 
   case class Clear(
@@ -135,7 +135,7 @@ object GraphMessages {
     secret: String) extends Payload
 }
 
-object ComponentMessages {
+private[protocol] object ComponentMessages {
   sealed trait Payload
 
   case class List(
@@ -169,7 +169,7 @@ object ComponentMessages {
     _value: Int) extends Payload
 }
 
-object NetworkMessages {
+private[protocol] object NetworkMessages {
   sealed trait Payload
 
   case class Start(
@@ -234,7 +234,7 @@ object NetworkMessages {
   // TODO
 }
 
-object TraceMessages {
+private[protocol] object TraceMessages {
   sealed trait Payload
 
   case class Start(
