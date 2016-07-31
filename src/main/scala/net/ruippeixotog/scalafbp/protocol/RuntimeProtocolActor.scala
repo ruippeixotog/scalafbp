@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor.Actor
 
-import net.ruippeixotog.scalafbp.protocol.message.RuntimeMessages._
+import net.ruippeixotog.scalafbp.protocol.message.Runtime._
 
 class RuntimeProtocolActor extends Actor {
 

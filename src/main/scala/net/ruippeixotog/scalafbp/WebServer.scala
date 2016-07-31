@@ -5,15 +5,16 @@ import java.util.UUID
 import akka.actor.{ ActorSystem, Props }
 import akka.event.slf4j.SLF4JLogging
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.{ Message, TextMessage }
+import akka.http.scaladsl.model.ws.{ Message => WsMessage, TextMessage => WsTextMessage }
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import spray.json._
 
+import net.ruippeixotog.scalafbp.protocol.message.Message
 import net.ruippeixotog.scalafbp.protocol.message.Message._
-import net.ruippeixotog.scalafbp.protocol.{ MainProtocolActor, message, registry }
 import net.ruippeixotog.scalafbp.protocol.registry.RegistryClient
+import net.ruippeixotog.scalafbp.protocol.{ MainProtocolActor, registry }
 import net.ruippeixotog.scalafbp.ws.SubscriptionManagerActor._
 import net.ruippeixotog.scalafbp.ws.{ SubscriptionManagerActor, WsUtils }
 
@@ -25,11 +26,11 @@ object WebServer extends App with WsUtils with SLF4JLogging {
   val fbpRuntimeActor = system.actorOf(Props(new MainProtocolActor))
   val wsManagerActor = system.actorOf(Props(new SubscriptionManagerActor(fbpRuntimeActor)))
 
-  def fbpRuntimeFlow(id: String): Flow[Message, Message, Any] = {
-    Flow[Message]
-      .collect { case TextMessage.Strict(text) => text.parseJson.convertTo[message.Message].payload }
-      .via(subscriptionFlow[message.Payload, message.Payload](id, wsManagerActor))
-      .map { msg => TextMessage(msg.toMessage.toJson.compactPrint) }
+  def fbpRuntimeFlow(id: String): Flow[WsMessage, WsMessage, Any] = {
+    Flow[WsMessage]
+      .collect { case WsTextMessage.Strict(text) => text.parseJson.convertTo[Message] }
+      .via(subscriptionFlow[Message, Message](id, wsManagerActor))
+      .map { msg => WsTextMessage(msg.toJson.compactPrint) }
   }
 
   val runtimeId = "28e174b3-8363-4d98-bdff-5b6862253f32"

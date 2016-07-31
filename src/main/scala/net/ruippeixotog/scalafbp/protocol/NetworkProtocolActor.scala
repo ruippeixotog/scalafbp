@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
-import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
+import net.ruippeixotog.scalafbp.protocol.message.Network._
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
 

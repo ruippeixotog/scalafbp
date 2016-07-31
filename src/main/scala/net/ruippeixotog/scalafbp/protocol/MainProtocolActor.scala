@@ -2,7 +2,10 @@ package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor._
 
-import net.ruippeixotog.scalafbp.protocol.message._
+import net.ruippeixotog.scalafbp.protocol.message.Component.ComponentMessage
+import net.ruippeixotog.scalafbp.protocol.message.Graph.GraphMessage
+import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
+import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 
 class MainProtocolActor extends Actor {
@@ -14,10 +17,10 @@ class MainProtocolActor extends Actor {
   val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(logicActor)))
 
   def receive = {
-    case p: RuntimeMessages.Payload => runtimeProtocolActor.forward(p)
-    case p: ComponentMessages.Payload => componentProtocolActor.forward(p)
-    case p: GraphMessages.Payload => graphProtocolActor.forward(p)
-    case p: NetworkMessages.Payload => networkProtocolActor.forward(p)
+    case p: RuntimeMessage => runtimeProtocolActor.forward(p)
+    case p: ComponentMessage => componentProtocolActor.forward(p)
+    case p: GraphMessage => graphProtocolActor.forward(p)
+    case p: NetworkMessage => networkProtocolActor.forward(p)
     case msg => println(s"UNHANDLED MESSAGE: $msg")
   }
 }

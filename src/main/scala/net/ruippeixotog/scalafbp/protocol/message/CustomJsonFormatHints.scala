@@ -10,8 +10,8 @@ trait CustomJsonFormatHints extends JsonFormatHints {
     override protected def fieldName(orig: String) = orig.toLowerCase
   }
 
-  class MessageCoproductHint(protocolKey: String, commandKey: String, payloadKey: String)(implicit t: Typeable[Message])
-      extends CoproductHint[Message] with LowerCaseHints[Message] {
+  class MessageCoproductHint(protocolKey: String, commandKey: String, payloadKey: String)(implicit t: Typeable[ProtocolWrapper])
+      extends CoproductHint[ProtocolWrapper] with LowerCaseHints[ProtocolWrapper] {
 
     def read[Name <: Symbol](j: JsObject, n: Name): Option[JsObject] = {
       j.fields.get(protocolKey) match {

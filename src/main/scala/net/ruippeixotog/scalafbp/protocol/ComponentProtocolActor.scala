@@ -4,7 +4,7 @@ import akka.actor.Actor
 
 import net.ruippeixotog.scalafbp.component
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
-import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.{ List => ListComponents, _ }
+import net.ruippeixotog.scalafbp.protocol.message.Component.{ List => ListComponents, _ }
 
 class ComponentProtocolActor extends Actor {
 

@@ -9,7 +9,7 @@ import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.graph
-import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
+import net.ruippeixotog.scalafbp.protocol.message.Graph._
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
 
 class GraphProtocolActor(logicActor: ActorRef) extends Actor {
@@ -25,8 +25,8 @@ class GraphProtocolActor(logicActor: ActorRef) extends Actor {
     logicActor ? GraphUpdated(id, newGraph)
   }
 
-  def returnPayload(pf: PartialFunction[Payload, Future[Any]]): Receive = {
-    case msg: Payload if pf.isDefinedAt(msg) =>
+  def returnPayload(pf: PartialFunction[GraphMessage, Future[Any]]): Receive = {
+    case msg: GraphMessage if pf.isDefinedAt(msg) =>
       val replyTo = sender()
       pf(msg).foreach { _ => replyTo ! msg }
   }

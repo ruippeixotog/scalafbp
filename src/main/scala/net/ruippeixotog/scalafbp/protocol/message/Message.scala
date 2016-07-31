@@ -1,32 +1,26 @@
 package net.ruippeixotog.scalafbp.protocol.message
 
-import net.ruippeixotog.scalafbp.protocol.message
-
 import fommil.sjs.FamilyFormats
 import shapeless._
 import spray.json._
 
-sealed trait Payload {
-  def toMessage: Message
-}
+import net.ruippeixotog.scalafbp.protocol.message.Component.ComponentMessage
+import net.ruippeixotog.scalafbp.protocol.message.Graph.GraphMessage
+import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
+import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
+import net.ruippeixotog.scalafbp.protocol.message.Trace.TraceMessage
 
 sealed trait Message {
-  def payload: Payload
+  private[message] def wrap: ProtocolWrapper
 }
 
-private[protocol] case class Runtime(payload: RuntimeMessages.Payload) extends Message
-private[protocol] case class Graph(payload: GraphMessages.Payload) extends Message
-private[protocol] case class Component(payload: ComponentMessages.Payload) extends Message
-private[protocol] case class Network(payload: NetworkMessages.Payload) extends Message
-private[protocol] case class Trace(payload: TraceMessages.Payload) extends Message
-
-private[protocol] object RuntimeMessages {
-  sealed trait Payload extends message.Payload {
-    def toMessage = message.Runtime(this)
+private[protocol] object Runtime {
+  sealed trait RuntimeMessage extends Message {
+    private[message] def wrap = ProtocolWrapper.Runtime(this)
   }
 
   case class GetRuntime(
-    secret: String) extends Payload
+    secret: String) extends RuntimeMessage
 
   case class Runtime(
     `type`: String,
@@ -35,7 +29,7 @@ private[protocol] object RuntimeMessages {
     allCapabilities: List[String],
     id: Option[String],
     label: Option[String],
-    graph: Option[String]) extends Payload
+    graph: Option[String]) extends RuntimeMessage
 
   case class Port(
     id: String,
@@ -47,19 +41,19 @@ private[protocol] object RuntimeMessages {
   case class Ports(
     graph: String,
     inPorts: List[Port],
-    outPorts: List[Port]) extends Payload
+    outPorts: List[Port]) extends RuntimeMessage
 
   case class Packet(
     port: String,
     event: String,
     payload: Option[String],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends RuntimeMessage
 }
 
-private[protocol] object GraphMessages {
-  sealed trait Payload extends message.Payload {
-    def toMessage = message.Graph(this)
+private[protocol] object Graph {
+  sealed trait GraphMessage extends Message {
+    private[message] def wrap = ProtocolWrapper.Graph(this)
   }
 
   case class Clear(
@@ -69,25 +63,25 @@ private[protocol] object GraphMessages {
     main: Option[String],
     icon: Option[String],
     description: Option[String],
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class AddNode(
     id: String,
     component: String,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class RemoveNode(
     id: String,
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class ChangeNode(
     id: String,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class Edge(
     node: String,
@@ -99,20 +93,20 @@ private[protocol] object GraphMessages {
     tgt: Edge,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class RemoveEdge(
     src: Edge,
     tgt: Edge,
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class ChangeEdge(
     src: Edge,
     tgt: Edge,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class Initial(data: JsValue)
 
@@ -121,12 +115,12 @@ private[protocol] object GraphMessages {
     tgt: Edge,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class RemoveInitial(
     tgt: Edge,
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class AddInPort(
     public: String,
@@ -134,7 +128,7 @@ private[protocol] object GraphMessages {
     port: String,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 
   case class AddOutPort(
     public: String,
@@ -142,16 +136,16 @@ private[protocol] object GraphMessages {
     port: String,
     metadata: Option[Map[String, JsValue]],
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends GraphMessage
 }
 
-private[protocol] object ComponentMessages {
-  sealed trait Payload extends message.Payload {
-    def toMessage = message.Component(this)
+private[protocol] object Component {
+  sealed trait ComponentMessage extends Message {
+    private[message] def wrap = ProtocolWrapper.Component(this)
   }
 
   case class List(
-    secret: String) extends Payload
+    secret: String) extends ComponentMessage
 
   case class InPort(
     id: String,
@@ -175,88 +169,100 @@ private[protocol] object ComponentMessages {
     icon: Option[String],
     subgraph: Boolean,
     inPorts: scala.List[InPort],
-    outPorts: scala.List[OutPort]) extends Payload
+    outPorts: scala.List[OutPort]) extends ComponentMessage
 
   case class ComponentsReady(
-    _value: Int) extends Payload
+    _value: Int) extends ComponentMessage
 }
 
-private[protocol] object NetworkMessages {
-  sealed trait Payload extends message.Payload {
-    def toMessage = message.Network(this)
+private[protocol] object Network {
+  sealed trait NetworkMessage extends Message {
+    private[message] def wrap = ProtocolWrapper.Network(this)
   }
 
   case class Start(
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends NetworkMessage
 
   case class GetStatus(
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends NetworkMessage
 
   case class Stop(
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends NetworkMessage
 
   case class Persist(
-    secret: String) extends Payload
+    secret: String) extends NetworkMessage
 
   case class Started(
     graph: String,
     time: Long,
     running: Boolean,
     started: Boolean,
-    uptime: Option[Long]) extends Payload
+    uptime: Option[Long]) extends NetworkMessage
 
   case class Status(
     graph: String,
     running: Boolean,
     started: Boolean,
     uptime: Option[Long],
-    debug: Option[Boolean]) extends Payload
+    debug: Option[Boolean]) extends NetworkMessage
 
   case class Stopped(
     graph: String,
     time: Long,
     running: Boolean,
     started: Boolean,
-    uptime: Option[Long]) extends Payload
+    uptime: Option[Long]) extends NetworkMessage
 
   case class Debug(
     enable: Boolean,
     graph: String,
-    secret: String) extends Payload
+    secret: String) extends NetworkMessage
 
   case class Icon(
     id: String,
     icon: String,
-    graph: String) extends Payload
+    graph: String) extends NetworkMessage
 
   case class Output(
     message: String,
     `type`: Option[String],
-    url: Option[String]) extends Payload
+    url: Option[String]) extends NetworkMessage
 
   case class Error(
-    message: String) extends Payload
+    message: String) extends NetworkMessage
 
   case class ProcessError(
     id: String,
     error: String,
-    graph: String) extends Payload
+    graph: String) extends NetworkMessage
 
   // TODO
 }
 
-private[protocol] object TraceMessages {
-  sealed trait Payload extends message.Payload {
-    def toMessage = message.Trace(this)
+private[protocol] object Trace {
+  sealed trait TraceMessage extends Message {
+    private[message] def wrap = ProtocolWrapper.Trace(this)
   }
 
   case class Start(
     graph: String,
     secret: String,
-    buffersize: Option[Int]) extends Payload
+    buffersize: Option[Int]) extends TraceMessage
+}
+
+private[message] sealed trait ProtocolWrapper {
+  def payload: Message
+}
+
+object ProtocolWrapper {
+  private[message] case class Runtime(payload: RuntimeMessage) extends ProtocolWrapper
+  private[message] case class Graph(payload: GraphMessage) extends ProtocolWrapper
+  private[message] case class Component(payload: ComponentMessage) extends ProtocolWrapper
+  private[message] case class Network(payload: NetworkMessage) extends ProtocolWrapper
+  private[message] case class Trace(payload: TraceMessage) extends ProtocolWrapper
 }
 
 object Message {
@@ -264,13 +270,15 @@ object Message {
     implicit val jsValueJsonFormat = JsValueFormat // to help the compiler find the implicit for RootJsonformat[Message]
     implicit val messageCoproductHint = new MessageCoproductHint("protocol", "command", "payload")
 
-    val messageJsonFormat: RootJsonFormat[Message] = cachedImplicit
-    //      val messageJsonFormat: RootJsonFormat[Message] = implicitly[RootJsonFormat[Message]]
+    val wrapperJsonFormat: RootJsonFormat[ProtocolWrapper] = cachedImplicit
   }
 
-  implicit val messageJsonFormat = JsonProtocol.messageJsonFormat
+  implicit object MessageJsonFormat extends RootJsonFormat[Message] {
+    def read(json: JsValue) = JsonProtocol.wrapperJsonFormat.read(json).payload
+    def write(obj: Message) = JsonProtocol.wrapperJsonFormat.write(obj.wrap)
+  }
 
-  implicit def messageSubtypeJsonReader[T <: Message] = new RootJsonWriter[T] {
-    def write(obj: T) = messageJsonFormat.write(obj)
+  implicit def messageSubtypeJsonWriter[T <: Message] = new RootJsonWriter[T] {
+    def write(obj: T) = MessageJsonFormat.write(obj)
   }
 }
