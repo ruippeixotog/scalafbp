@@ -5,7 +5,6 @@ import akka.actor.Actor
 import net.ruippeixotog.scalafbp.component
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.{ List => ListComponents, _ }
-import net.ruippeixotog.scalafbp.protocol.message.{ Component => ComponentProtocol }
 
 class ComponentProtocolActor extends Actor {
 
@@ -20,12 +19,10 @@ class ComponentProtocolActor extends Actor {
     comp.name, Some(comp.description), comp.icon, comp.isSubgraph,
     comp.inPorts.map(convertInPort), comp.outPorts.map(convertOutPort))
 
-  def wrap(payload: Payload) = ComponentProtocol(payload)
-
   def receive = {
     case _: ListComponents =>
-      ComponentRegistry.registry.values.foreach { comp => sender() ! wrap(convertComponent(comp)) }
-      sender() ! wrap(ComponentsReady(ComponentRegistry.registry.size))
+      ComponentRegistry.registry.values.foreach { comp => sender() ! convertComponent(comp) }
+      sender() ! ComponentsReady(ComponentRegistry.registry.size)
 
     case msg => println(s"UNHANDLED MESSAGE: $msg")
   }

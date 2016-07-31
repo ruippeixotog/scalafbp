@@ -8,7 +8,6 @@ import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
-import net.ruippeixotog.scalafbp.protocol.message.{ Network => NetworkProtocol }
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
 
@@ -20,16 +19,14 @@ class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
 
   def convertStatus(st: LogicActor.Status) = Status(st.graph, st.running, st.started, st.uptime, None)
 
-  def wrap(payload: Payload) = NetworkProtocol(payload)
-
   def receive = {
     case payload: GetStatus =>
       val replyTo = sender()
       (logicActor ? GetNetworkStatus(payload.graph)).map {
         case st: LogicActor.Status =>
-          replyTo ! wrap(Status(payload.graph, st.running, st.started, st.uptime, None))
+          replyTo ! Status(payload.graph, st.running, st.started, st.uptime, None)
 
-        case LogicActor.Error(msg) => replyTo ! wrap(Error(msg))
+        case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
     case payload: Start =>
@@ -37,25 +34,25 @@ class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
       val replyTo = sender()
       (logicActor ? StartNetwork(payload.graph)).map {
         case st: LogicActor.Status =>
-          replyTo ! wrap(Started(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime))
+          replyTo ! Started(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime)
 
-        case LogicActor.Error(msg) => replyTo ! wrap(Error(msg))
+        case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
     case payload: Stop =>
       val replyTo = sender()
       (logicActor ? StopNetwork(payload.graph)).map {
         case st: LogicActor.Status =>
-          replyTo ! wrap(Stopped(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime))
+          replyTo ! Stopped(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime)
 
-        case LogicActor.Error(msg) => replyTo ! wrap(Error(msg))
+        case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
     case payload: Debug =>
-      sender() ! wrap(payload.copy(enable = false))
+      sender() ! payload.copy(enable = false)
 
     case msg: ComponentActor.Output =>
-      outputActor ! wrap(Output(msg.message, Some(msg.msgType), msg.url))
+      outputActor ! Output(msg.message, Some(msg.msgType), msg.url)
 
     case msg => println(s"UNHANDLED MESSAGE: $msg")
   }

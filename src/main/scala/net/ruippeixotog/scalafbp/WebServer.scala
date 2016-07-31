@@ -27,9 +27,9 @@ object WebServer extends App with WsUtils with SLF4JLogging {
 
   def fbpRuntimeFlow(id: String): Flow[Message, Message, Any] = {
     Flow[Message]
-      .collect { case TextMessage.Strict(text) => text.parseJson.convertTo[message.Message] }
-      .via(subscriptionFlow[message.Message, message.Message](id, wsManagerActor))
-      .map { msg => TextMessage(msg.toJson.compactPrint) }
+      .collect { case TextMessage.Strict(text) => text.parseJson.convertTo[message.Message].payload }
+      .via(subscriptionFlow[message.Payload, message.Payload](id, wsManagerActor))
+      .map { msg => TextMessage(msg.toMessage.toJson.compactPrint) }
   }
 
   val runtimeId = "28e174b3-8363-4d98-bdff-5b6862253f32"

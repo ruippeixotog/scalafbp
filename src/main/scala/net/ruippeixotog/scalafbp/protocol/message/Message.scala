@@ -1,11 +1,17 @@
 package net.ruippeixotog.scalafbp.protocol.message
 
+import net.ruippeixotog.scalafbp.protocol.message
+
 import fommil.sjs.FamilyFormats
 import shapeless._
 import spray.json._
 
+sealed trait Payload {
+  def toMessage: Message
+}
+
 sealed trait Message {
-  def payload: Any
+  def payload: Payload
 }
 
 private[protocol] case class Runtime(payload: RuntimeMessages.Payload) extends Message
@@ -15,7 +21,9 @@ private[protocol] case class Network(payload: NetworkMessages.Payload) extends M
 private[protocol] case class Trace(payload: TraceMessages.Payload) extends Message
 
 private[protocol] object RuntimeMessages {
-  sealed trait Payload
+  sealed trait Payload extends message.Payload {
+    def toMessage = message.Runtime(this)
+  }
 
   case class GetRuntime(
     secret: String) extends Payload
@@ -50,7 +58,9 @@ private[protocol] object RuntimeMessages {
 }
 
 private[protocol] object GraphMessages {
-  sealed trait Payload
+  sealed trait Payload extends message.Payload {
+    def toMessage = message.Graph(this)
+  }
 
   case class Clear(
     id: String,
@@ -136,7 +146,9 @@ private[protocol] object GraphMessages {
 }
 
 private[protocol] object ComponentMessages {
-  sealed trait Payload
+  sealed trait Payload extends message.Payload {
+    def toMessage = message.Component(this)
+  }
 
   case class List(
     secret: String) extends Payload
@@ -170,7 +182,9 @@ private[protocol] object ComponentMessages {
 }
 
 private[protocol] object NetworkMessages {
-  sealed trait Payload
+  sealed trait Payload extends message.Payload {
+    def toMessage = message.Network(this)
+  }
 
   case class Start(
     graph: String,
@@ -235,7 +249,9 @@ private[protocol] object NetworkMessages {
 }
 
 private[protocol] object TraceMessages {
-  sealed trait Payload
+  sealed trait Payload extends message.Payload {
+    def toMessage = message.Trace(this)
+  }
 
   case class Start(
     graph: String,

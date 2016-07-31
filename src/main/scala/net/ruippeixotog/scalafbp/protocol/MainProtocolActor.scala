@@ -14,10 +14,10 @@ class MainProtocolActor extends Actor {
   val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(logicActor)))
 
   def receive = {
-    case Runtime(payload) => runtimeProtocolActor.forward(payload)
-    case Component(payload) => componentProtocolActor.forward(payload)
-    case Graph(payload) => graphProtocolActor.forward(payload)
-    case Network(payload) => networkProtocolActor.forward(payload)
+    case p: RuntimeMessages.Payload => runtimeProtocolActor.forward(p)
+    case p: ComponentMessages.Payload => componentProtocolActor.forward(p)
+    case p: GraphMessages.Payload => graphProtocolActor.forward(p)
+    case p: NetworkMessages.Payload => networkProtocolActor.forward(p)
     case msg => println(s"UNHANDLED MESSAGE: $msg")
   }
 }

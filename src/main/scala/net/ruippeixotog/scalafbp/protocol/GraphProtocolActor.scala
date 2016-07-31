@@ -10,7 +10,6 @@ import akka.util.Timeout
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.graph
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
-import net.ruippeixotog.scalafbp.protocol.message.{ Graph => GraphProtocol }
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
 
 class GraphProtocolActor(logicActor: ActorRef) extends Actor {
@@ -18,8 +17,6 @@ class GraphProtocolActor(logicActor: ActorRef) extends Actor {
 
   implicit val timeout = Timeout(3.seconds)
   implicit val ec = context.dispatcher
-
-  def wrap(payload: Payload) = GraphProtocol(payload)
 
   def update(id: String)(f: graph.Graph => graph.Graph): Future[_] = {
     val oldGraph = graphs.getOrElse(id, graph.Graph(id))
@@ -31,7 +28,7 @@ class GraphProtocolActor(logicActor: ActorRef) extends Actor {
   def returnPayload(pf: PartialFunction[Payload, Future[Any]]): Receive = {
     case msg: Payload if pf.isDefinedAt(msg) =>
       val replyTo = sender()
-      pf(msg).foreach { _ => replyTo ! wrap(msg) }
+      pf(msg).foreach { _ => replyTo ! msg }
   }
 
   def receive = returnPayload {
