@@ -1,17 +1,17 @@
-package net.ruippeixotog.scalafbp.runtime
+package net.ruippeixotog.scalafbp.protocol
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
-import akka.pattern.ask
 import akka.actor.{ Actor, ActorRef }
+import akka.pattern.ask
 import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.graph
-import net.ruippeixotog.scalafbp.protocol.GraphMessages._
-import net.ruippeixotog.scalafbp.protocol.{ Graph => GraphProtocol }
+import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
+import net.ruippeixotog.scalafbp.protocol.message.{ Graph => GraphProtocol }
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
-import scala.concurrent.duration._
 
 class GraphProtocolActor(logicActor: ActorRef) extends Actor {
   var graphs = Map[String, graph.Graph]()

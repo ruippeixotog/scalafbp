@@ -1,8 +1,9 @@
-package net.ruippeixotog.scalafbp.runtime
+package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor._
 
-import net.ruippeixotog.scalafbp.protocol._
+import net.ruippeixotog.scalafbp.protocol.message._
+import net.ruippeixotog.scalafbp.runtime.LogicActor
 
 class MainProtocolActor extends Actor {
   val logicActor = context.actorOf(Props(new LogicActor))

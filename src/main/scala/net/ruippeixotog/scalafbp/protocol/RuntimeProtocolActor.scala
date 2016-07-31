@@ -1,9 +1,9 @@
-package net.ruippeixotog.scalafbp.runtime
+package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor.Actor
 
-import net.ruippeixotog.scalafbp.protocol.RuntimeMessages._
-import net.ruippeixotog.scalafbp.protocol.{ Runtime => RuntimeProtocol }
+import net.ruippeixotog.scalafbp.protocol.message.RuntimeMessages._
+import net.ruippeixotog.scalafbp.protocol.message.{ Runtime => RuntimeProtocol }
 
 class RuntimeProtocolActor extends Actor {
   def wrap(payload: Payload) = RuntimeProtocol(payload)

@@ -11,10 +11,9 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import spray.json._
 
-import net.ruippeixotog.scalafbp.protocol.Message._
-import net.ruippeixotog.scalafbp.protocol.registry
+import net.ruippeixotog.scalafbp.protocol.message.Message._
+import net.ruippeixotog.scalafbp.protocol.{ MainProtocolActor, message, registry }
 import net.ruippeixotog.scalafbp.protocol.registry.RegistryClient
-import net.ruippeixotog.scalafbp.runtime.MainProtocolActor
 import net.ruippeixotog.scalafbp.ws.SubscriptionManagerActor._
 import net.ruippeixotog.scalafbp.ws.{ SubscriptionManagerActor, WsUtils }
 
@@ -28,8 +27,8 @@ object WebServer extends App with WsUtils with SLF4JLogging {
 
   def fbpRuntimeFlow(id: String): Flow[Message, Message, Any] = {
     Flow[Message]
-      .collect { case TextMessage.Strict(text) => text.parseJson.convertTo[protocol.Message] }
-      .via(subscriptionFlow[protocol.Message, protocol.Message](id, wsManagerActor))
+      .collect { case TextMessage.Strict(text) => text.parseJson.convertTo[message.Message] }
+      .via(subscriptionFlow[message.Message, message.Message](id, wsManagerActor))
       .map { msg => TextMessage(msg.toJson.compactPrint) }
   }
 

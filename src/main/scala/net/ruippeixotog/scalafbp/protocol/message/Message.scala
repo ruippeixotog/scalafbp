@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.protocol
+package net.ruippeixotog.scalafbp.protocol.message
 
 import fommil.sjs.FamilyFormats
 import shapeless._

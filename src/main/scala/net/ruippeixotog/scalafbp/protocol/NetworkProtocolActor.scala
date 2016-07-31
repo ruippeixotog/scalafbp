@@ -1,15 +1,16 @@
-package net.ruippeixotog.scalafbp.runtime
+package net.ruippeixotog.scalafbp.protocol
 
-import akka.pattern.ask
+import scala.concurrent.duration._
+
 import akka.actor.{ Actor, ActorRef }
+import akka.pattern.ask
 import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
-import net.ruippeixotog.scalafbp.protocol.NetworkMessages._
-import net.ruippeixotog.scalafbp.protocol.{ Network => NetworkProtocol }
-import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, Ok, StartNetwork, StopNetwork }
-
-import scala.concurrent.duration._
+import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
+import net.ruippeixotog.scalafbp.protocol.message.{ Network => NetworkProtocol }
+import net.ruippeixotog.scalafbp.runtime.LogicActor
+import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
 
 class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
   var outputActor: ActorRef = context.system.deadLetters // TODO improve this hack

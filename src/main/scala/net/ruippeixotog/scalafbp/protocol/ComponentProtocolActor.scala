@@ -1,11 +1,11 @@
-package net.ruippeixotog.scalafbp.runtime
+package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor.Actor
 
 import net.ruippeixotog.scalafbp.component
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
-import net.ruippeixotog.scalafbp.protocol.ComponentMessages.{ List => ListComponents, _ }
-import net.ruippeixotog.scalafbp.protocol.{ Component => ComponentProtocol }
+import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.{ List => ListComponents, _ }
+import net.ruippeixotog.scalafbp.protocol.message.{ Component => ComponentProtocol }
 
 class ComponentProtocolActor extends Actor {
 
