@@ -14,8 +14,8 @@ trait WsUtils extends SLF4JLogging {
 
   def logWsMessages(id: String)(handler: Flow[Message, Message, Any]) = {
     Flow[Message]
-      .map { msg => log.info(s"[$id] > ${printMessage(msg)}"); msg }
+      .map { msg => log.debug(s"[$id] IN : ${printMessage(msg)}"); msg }
       .via(handler)
-      .map { msg => log.info(s"[$id] < ${printMessage(msg)}"); msg }
+      .map { msg => log.debug(s"[$id] OUT: ${printMessage(msg)}"); msg }
   }
 }
