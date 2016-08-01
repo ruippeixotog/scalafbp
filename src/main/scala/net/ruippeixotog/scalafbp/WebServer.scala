@@ -15,6 +15,7 @@ import net.ruippeixotog.scalafbp.protocol.message.Message
 import net.ruippeixotog.scalafbp.protocol.message.Message._
 import net.ruippeixotog.scalafbp.protocol.registry.RegistryClient
 import net.ruippeixotog.scalafbp.protocol.{ MainProtocolActor, registry }
+import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.ws.SubscriptionManagerActor._
 import net.ruippeixotog.scalafbp.ws.{ SubscriptionManagerActor, WsUtils }
 
@@ -23,9 +24,17 @@ object WebServer extends App with WsUtils with SLF4JLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  val fbpRuntimeActor = system.actorOf(Props(new MainProtocolActor))
-  val wsManagerActor = system.actorOf(Props(new SubscriptionManagerActor(fbpRuntimeActor)))
+  // the actor that serves as the central store for the state about graphs and handles the execution of networks
+  val logicActor = system.actorOf(Props(new LogicActor))
 
+  // actor that receives incoming messages (as `Message` objects) and translates them into appropriate actions for
+  // `LogicActor`
+  val protocolActor = system.actorOf(Props(new MainProtocolActor(logicActor)))
+
+  // actor dealing with the subscription of multiple WebSocket clients
+  val wsManagerActor = system.actorOf(Props(new SubscriptionManagerActor(protocolActor)))
+
+  // creates a `Flow` of WebScoket messages encompassing incoming and outgoing messages to/from a client
   def fbpRuntimeFlow(id: String): Flow[WsMessage, WsMessage, Any] = {
     Flow[WsMessage]
       .collect { case WsTextMessage.Strict(text) => text.parseJson.convertTo[Message] }

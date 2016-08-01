@@ -8,9 +8,7 @@ import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 
-class MainProtocolActor extends Actor {
-  val logicActor = context.actorOf(Props(new LogicActor))
-
+class MainProtocolActor(logicActor: ActorRef) extends Actor {
   val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor))
   val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor))
   val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(logicActor)))
