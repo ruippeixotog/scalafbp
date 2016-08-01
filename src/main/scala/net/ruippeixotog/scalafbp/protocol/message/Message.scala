@@ -267,7 +267,7 @@ object ProtocolWrapper {
 
 object Message {
   private object JsonProtocol extends DefaultJsonProtocol with FamilyFormats with CustomJsonFormatHints {
-    implicit val jsValueJsonFormat = JsValueFormat // to help the compiler find the implicit for RootJsonformat[Message]
+    implicit val jsValueJsonFormat = JsValueFormat // to help the compiler find the implicit for RootJsonformat[ProtocolWrapper]
     implicit val messageCoproductHint = new MessageCoproductHint("protocol", "command", "payload")
 
     val wrapperJsonFormat: RootJsonFormat[ProtocolWrapper] = cachedImplicit
