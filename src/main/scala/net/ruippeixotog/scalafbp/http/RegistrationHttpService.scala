@@ -14,12 +14,13 @@ import net.ruippeixotog.scalafbp.protocol.registry
 import net.ruippeixotog.scalafbp.protocol.registry.RegistryClient
 
 trait RegistrationHttpService {
-  def runtimeId: String
-  def secret: String
 
   implicit def system: ActorSystem
   implicit def materializer: Materializer
   implicit def ec: ExecutionContext
+
+  def runtimeId: String
+  def secret: String
 
   def registryConfig: Config
 
@@ -28,16 +29,17 @@ trait RegistrationHttpService {
   private[this] lazy val userId = registryConfig.getString("user-id")
   private[this] lazy val authToken = registryConfig.getString("auth-token")
 
-  def handleRegistryResponse(successMsg: String, errorMsg: String => String)(res: HttpResponse) = res match {
-    case HttpResponse(code, _, _, _) if code.isSuccess() =>
-      Future.successful(OK -> successMsg)
+  private[this] def handleRegistryResponse(successMsg: String, errorMsg: String => String)(res: HttpResponse) =
+    res match {
+      case HttpResponse(code, _, _, _) if code.isSuccess() =>
+        Future.successful(OK -> successMsg)
 
-    case HttpResponse(code, _, entity, _) =>
-      Unmarshal(entity).to[String].map { InternalServerError -> errorMsg(_) }
-  }
+      case HttpResponse(code, _, entity, _) =>
+        Unmarshal(entity).to[String].map { InternalServerError -> errorMsg(_) }
+    }
 
   // format: OFF
-  val registrationRoute =
+  lazy val registrationRoutes =
     (path("register") & post) {
       complete {
         val runtimeInfo = registry.Runtime("scalafbp", "websocket", s"ws://$host:$port", runtimeId,
