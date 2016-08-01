@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.protocol
 
 import scala.concurrent.duration._
 
-import akka.actor.{ Actor, ActorRef }
+import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 
@@ -11,7 +11,7 @@ import net.ruippeixotog.scalafbp.protocol.message.Network._
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
 
-class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
+class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
   var outputActor: ActorRef = context.system.deadLetters // TODO improve this hack
 
   implicit val timeout = Timeout(3.seconds)
@@ -19,7 +19,7 @@ class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
 
   def convertStatus(st: LogicActor.Status) = Status(st.graph, st.running, st.started, st.uptime, None)
 
-  def receive = {
+  def receiveMessage = {
     case payload: GetStatus =>
       val replyTo = sender()
       (logicActor ? GetNetworkStatus(payload.graph)).map {
@@ -53,7 +53,5 @@ class NetworkProtocolActor(logicActor: ActorRef) extends Actor {
 
     case msg: ComponentActor.Output =>
       outputActor ! Output(msg.message, Some(msg.msgType), msg.url)
-
-    case msg => println(s"UNHANDLED MESSAGE: $msg")
   }
 }

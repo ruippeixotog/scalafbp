@@ -1,12 +1,10 @@
 package net.ruippeixotog.scalafbp.protocol
 
-import akka.actor.Actor
-
 import net.ruippeixotog.scalafbp.component
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.protocol.message.Component.{ List => ListComponents, _ }
 
-class ComponentProtocolActor extends Actor {
+class ComponentProtocolActor extends AbstractProtocolActor[ComponentMessage] {
 
   def convertInPort(port: component.InPort[_]) = InPort(
     port.id, port.dataType, port.description, port.addressable, port.required,
@@ -19,11 +17,9 @@ class ComponentProtocolActor extends Actor {
     comp.name, Some(comp.description), comp.icon, comp.isSubgraph,
     comp.inPorts.map(convertInPort), comp.outPorts.map(convertOutPort))
 
-  def receive = {
+  def receiveMessage = {
     case _: ListComponents =>
       ComponentRegistry.registry.values.foreach { comp => sender() ! convertComponent(comp) }
       sender() ! ComponentsReady(ComponentRegistry.registry.size)
-
-    case msg => println(s"UNHANDLED MESSAGE: $msg")
   }
 }

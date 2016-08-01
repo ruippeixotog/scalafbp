@@ -1,12 +1,10 @@
 package net.ruippeixotog.scalafbp.protocol
 
-import akka.actor.Actor
-
 import net.ruippeixotog.scalafbp.protocol.message.Runtime._
 
-class RuntimeProtocolActor extends Actor {
+class RuntimeProtocolActor extends AbstractProtocolActor[RuntimeMessage] {
 
-  def receive = {
+  def receiveMessage = {
     case _: GetRuntime =>
       sender() ! Runtime(
         `type` = "fbp-scala-example",
@@ -19,7 +17,5 @@ class RuntimeProtocolActor extends Actor {
 
     case packet: Packet =>
       sender() ! packet.copy(port = "out")
-
-    case msg => println(s"UNHANDLED MESSAGE: $msg")
   }
 }
