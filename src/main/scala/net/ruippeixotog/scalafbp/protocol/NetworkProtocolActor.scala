@@ -11,6 +11,7 @@ import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
+import net.ruippeixotog.scalafbp.protocol.message.ModelConversions._
 
 class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
   var outputActor: ActorRef = context.system.deadLetters // TODO improve this hack
@@ -18,15 +19,11 @@ class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[N
   implicit val timeout = Timeout(3.seconds)
   implicit val ec = context.dispatcher
 
-  def convertStatus(st: LogicActor.Status) = Status(st.graph, st.running, st.started, st.uptime, None)
-
   def receiveMessage = {
     case payload: GetStatus =>
       val replyTo = sender()
       (logicActor ? GetNetworkStatus(payload.graph)).map {
-        case st: LogicActor.Status =>
-          replyTo ! Status(payload.graph, st.running, st.started, st.uptime, None)
-
+        case st: LogicActor.Status => replyTo ! st.toStatusMessage
         case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
@@ -34,18 +31,14 @@ class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[N
       outputActor = sender()
       val replyTo = sender()
       (logicActor ? StartNetwork(payload.graph)).map {
-        case st: LogicActor.Status =>
-          replyTo ! Started(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime)
-
+        case st: LogicActor.Status => replyTo ! st.toStartedMessage()
         case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
     case payload: Stop =>
       val replyTo = sender()
       (logicActor ? StopNetwork(payload.graph)).map {
-        case st: LogicActor.Status =>
-          replyTo ! Stopped(payload.graph, System.currentTimeMillis(), st.running, st.started, st.uptime)
-
+        case st: LogicActor.Status => replyTo ! st.toStoppedMessage()
         case LogicActor.Error(msg) => replyTo ! Error(msg)
       }
 
