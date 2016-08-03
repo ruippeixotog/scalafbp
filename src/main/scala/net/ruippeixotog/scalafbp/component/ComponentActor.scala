@@ -4,8 +4,7 @@ object ComponentActor {
   case class Incoming(port: String, data: Any)
   case class Outgoing(port: String, data: Any)
 
-  case class Output(
-    message: String,
-    msgType: String = "message",
-    url: Option[String] = None)
+  sealed trait Output
+  case class Message(message: String) extends Output
+  case class PreviewURL(message: String, url: String) extends Output
 }

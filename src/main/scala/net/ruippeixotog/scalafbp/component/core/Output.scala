@@ -17,7 +17,7 @@ object Output extends Component {
   val instanceProps = Props(new Actor {
     def receive = {
       case Incoming("in", data: JsValue) =>
-        sender() ! ComponentActor.Output(data.compactPrint)
+        sender() ! ComponentActor.Message(data.compactPrint)
         sender() ! Outgoing("out", data)
     }
   })

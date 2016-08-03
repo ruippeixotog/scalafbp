@@ -3,21 +3,21 @@ package net.ruippeixotog.scalafbp.runtime
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.event.slf4j.SLF4JLogging
 
-import net.ruippeixotog.scalafbp.component.ComponentActor.Output
-import net.ruippeixotog.scalafbp.graph.{ Graph, NetworkRunner }
+import net.ruippeixotog.scalafbp.graph.NetworkController.{ GetStatus, Start, Stop }
+import net.ruippeixotog.scalafbp.graph.{ Graph, NetworkController }
 import net.ruippeixotog.scalafbp.runtime.LogicActor._
 
 class LogicActor extends Actor with SLF4JLogging {
   var graphs = Map[String, Graph]()
-  var networkActors = Map[String, ActorRef]()
-  var senderActors = Map[String, ActorRef]()
-  var startTimes = Map[String, Long]()
+  var runnerActors = Map[String, ActorRef]()
 
-  def status(id: String) = Status(
-    id,
-    networkActors.contains(id),
-    networkActors.contains(id),
-    startTimes.get(id).map { startTime => (System.currentTimeMillis() - startTime) / 1000 })
+  def runnerActorFor(id: String) = runnerActors.get(id) match {
+    case Some(ref) => ref
+    case None =>
+      val ref = context.actorOf(Props(new NetworkController(id)), s"g-$id-runner")
+      runnerActors += id -> ref
+      ref
+  }
 
   def receive = {
     case GraphUpdated(id, graph) =>
@@ -25,52 +25,40 @@ class LogicActor extends Actor with SLF4JLogging {
       graphs += id -> graph
       sender() ! Ok
 
-    case StartNetwork(id) =>
-      (graphs.get(id), networkActors.get(id)) match {
-        case (Some(graph), None) =>
-          val actorName = s"g-$id-controller"
-          networkActors += id -> context.actorOf(Props(new NetworkRunner(graph, self)), actorName)
-          senderActors += id -> sender()
-          startTimes += id -> System.currentTimeMillis()
-          sender() ! status(id)
+    case StartNetwork(id, outputActor) =>
+      graphs.get(id) match {
+        case Some(graph) =>
+          val runnerActor = runnerActorFor(id)
+          runnerActor ! Start(graph, outputActor)
+          runnerActor.tell(GetStatus, sender())
 
-        case (Some(_), Some(_)) => sender() ! Error(s"Graph $id is already running")
-        case (None, _) => sender() ! Error(s"Graph $id not found")
+        case None => sender() ! Error(s"Graph $id not found")
       }
 
     case StopNetwork(id) =>
-      (graphs.get(id), networkActors.get(id)) match {
-        case (_, Some(ref)) =>
-          context.stop(ref)
-          networkActors -= id
-          senderActors -= id
-          startTimes -= id
-          sender() ! status(id)
+      graphs.get(id) match {
+        case Some(_) =>
+          val runnerActor = runnerActorFor(id)
+          runnerActor ! Stop
+          runnerActor.tell(GetStatus, sender())
 
-        case (Some(_), _) => sender() ! Error(s"Graph $id is already stopped")
-        case (None, _) => sender() ! Error(s"Graph $id not found")
+        case None => sender() ! Error(s"Graph $id not found")
       }
 
     case GetNetworkStatus(id) =>
       graphs.get(id) match {
-        case Some(_) => sender() ! status(id)
+        case Some(_) => runnerActorFor(id).tell(GetStatus, sender())
         case None => sender() ! Error(s"Graph $id not found")
-      }
-
-    case output: Output =>
-      networkActors.find(_._2 == sender()).foreach {
-        case (id, _) => senderActors(id) ! output
       }
   }
 }
 
 object LogicActor {
   case class GraphUpdated(id: String, graph: Graph)
-  case class StartNetwork(id: String)
+  case class StartNetwork(id: String, outputActor: ActorRef)
   case class StopNetwork(id: String)
   case class GetNetworkStatus(id: String)
 
   case object Ok
   case class Error(msg: String)
-  case class Status(graph: String, running: Boolean, started: Boolean, uptime: Option[Long])
 }

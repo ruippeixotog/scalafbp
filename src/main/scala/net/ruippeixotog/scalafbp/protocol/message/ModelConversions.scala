@@ -1,11 +1,11 @@
 package net.ruippeixotog.scalafbp.protocol.message
 
-import net.ruippeixotog.scalafbp.component
-import net.ruippeixotog.scalafbp.graph
+import net.ruippeixotog.scalafbp.component.ComponentActor
+import net.ruippeixotog.scalafbp.{ component, graph }
+import net.ruippeixotog.scalafbp.graph.{ NetworkController, NetworkController$ }
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
-import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages.{ Started, Status, Stopped }
-import net.ruippeixotog.scalafbp.runtime.LogicActor
+import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages.{ Output, Started, Status, Stopped }
 
 object ToMessageConversions {
 
@@ -30,7 +30,7 @@ object ToMessageConversions {
       comp.inPorts.map(_.toMessagePart), comp.outPorts.map(_.toMessagePart))
   }
 
-  implicit class StatusConvertible(val st: LogicActor.Status) extends AnyVal with ToMessageConvertible {
+  implicit class StatusConvertible(val st: NetworkController.Status) extends AnyVal with ToMessageConvertible {
     def toMessage = toStatusMessage
 
     def toStatusMessage = Status(st.graph, st.running, st.started, st.uptime, None)
@@ -40,6 +40,13 @@ object ToMessageConversions {
 
     def toStoppedMessage(time: Long = System.currentTimeMillis()) =
       Stopped(st.graph, time, st.running, st.started, st.uptime)
+  }
+
+  implicit class OutputConvertible(val output: ComponentActor.Output) extends AnyVal with ToMessageConvertible {
+    def toMessage = output match {
+      case ComponentActor.Message(msg) => Output(msg, Some("message"), None)
+      case ComponentActor.PreviewURL(msg, url) => Output(msg, Some("previewurl"), Some(url))
+    }
   }
 }
 

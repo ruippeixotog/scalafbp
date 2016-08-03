@@ -4,11 +4,12 @@ import akka.actor.{ Actor, ActorLogging, ActorRef }
 
 import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing, Output }
 
-class NetworkRunner(graph: Graph, controller: ActorRef) extends Actor with ActorLogging {
+class NetworkOrchestrator(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
+
   val nodeActors: Map[String, ActorRef] =
     graph.nodes.map {
       case (id, node) =>
-        val actorName = s"g-${graph.id}-node-$id".filter(_.isLetterOrDigit)
+        val actorName = s"node-$id".filter(_.isLetterOrDigit)
         id -> context.actorOf(node.component.instanceProps, actorName)
     }
 
@@ -27,10 +28,6 @@ class NetworkRunner(graph: Graph, controller: ActorRef) extends Actor with Actor
         None
     }
 
-  override def preStart() = {
-    log.info(s"Started network for graph ${graph.id}")
-  }
-
   def receive = {
     case msg @ Outgoing(port, data) =>
       actorNodeIds.get(sender()) match {
@@ -43,10 +40,6 @@ class NetworkRunner(graph: Graph, controller: ActorRef) extends Actor with Actor
           log.warning(s"Sender ${sender()} not recognized. Message $msg will be ignored")
       }
 
-    case output: Output => controller ! output
+    case output: Output => outputActor ! output
   }
-}
-
-object NetworkRunner {
-  case class Status(running: Boolean, started: Boolean, uptime: Long)
 }
