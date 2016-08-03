@@ -1,11 +1,13 @@
 package net.ruippeixotog.scalafbp.protocol.message
 
 import net.ruippeixotog.scalafbp.component
+import net.ruippeixotog.scalafbp.graph
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
+import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages.{ Started, Status, Stopped }
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 
-object ModelConversions {
+object ToMessageConversions {
 
   trait ToMessageConvertible extends Any {
     def toMessage: Message
@@ -38,5 +40,12 @@ object ModelConversions {
 
     def toStoppedMessage(time: Long = System.currentTimeMillis()) =
       Stopped(st.graph, time, st.running, st.started, st.uptime)
+  }
+}
+
+object FromMessageConversions {
+
+  implicit class EdgeConvertible(val edge: Edge) extends AnyVal {
+    def toPortRef = graph.PortRef(edge.node, edge.port)
   }
 }

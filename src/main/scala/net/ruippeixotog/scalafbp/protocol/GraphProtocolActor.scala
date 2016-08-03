@@ -9,6 +9,7 @@ import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.graph
+import net.ruippeixotog.scalafbp.protocol.message.FromMessageConversions._
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessage
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
@@ -39,10 +40,10 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
     }
   }
 
-  def updateConn(id: String, tgt: Edge)(f: graph.InConnection => graph.InConnection): Future[_] = {
+  def updateConn(id: String, tgt: graph.PortRef)(f: graph.InConnection => graph.InConnection): Future[_] = {
     update(id) { old =>
-      old.connections.get((tgt.node, tgt.port)) match {
-        case Some(conn) => old.copy(connections = old.connections + ((tgt.node, tgt.port) -> f(conn)))
+      old.connections.get(tgt) match {
+        case Some(conn) => old.copy(connections = old.connections + (tgt -> f(conn)))
         case None =>
           log.warn(s"Tried to update a non-existing connection to $tgt")
           old
@@ -87,30 +88,30 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
 
     case payload: AddEdge =>
       update(payload.graph) { old =>
-        old.copy(connections = old.connections + ((payload.tgt.node, payload.tgt.port) ->
-          graph.Edge(payload.src.node, payload.src.port, payload.metadata.getOrElse(Map()))))
+        old.copy(connections = old.connections + (payload.tgt.toPortRef ->
+          graph.Edge(payload.src.toPortRef, payload.metadata.getOrElse(Map()))))
       }
 
     case payload: RemoveEdge =>
       update(payload.graph) { old =>
-        old.copy(connections = old.connections - ((payload.tgt.node, payload.tgt.port)))
+        old.copy(connections = old.connections - payload.tgt.toPortRef)
       }
 
     case payload: ChangeEdge =>
-      updateConn(payload.graph, payload.tgt) {
+      updateConn(payload.graph, payload.tgt.toPortRef) {
         case edge: graph.Edge => edge.copy(metadata = payload.metadata)
         case conn => conn
       }
 
     case payload: AddInitial =>
       update(payload.graph) { old =>
-        old.copy(connections = old.connections + ((payload.tgt.node, payload.tgt.port) ->
+        old.copy(connections = old.connections + (payload.tgt.toPortRef ->
           graph.IIP(payload.src.data, payload.metadata.getOrElse(Map()))))
       }
 
     case payload: RemoveInitial =>
       update(payload.graph) { old =>
-        old.copy(connections = old.connections - ((payload.tgt.node, payload.tgt.port)))
+        old.copy(connections = old.connections - payload.tgt.toPortRef)
       }
   }
 }

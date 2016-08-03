@@ -9,9 +9,9 @@ import akka.util.Timeout
 import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
+import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
-import net.ruippeixotog.scalafbp.protocol.message.ModelConversions._
 
 class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
   var outputActor: ActorRef = context.system.deadLetters // TODO improve this hack

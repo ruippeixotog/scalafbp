@@ -12,27 +12,31 @@ class NetworkRunner(graph: Graph, controller: ActorRef) extends Actor with Actor
         id -> context.actorOf(node.component.instanceProps, actorName)
     }
 
-  val actorNodeIds = nodeActors.map(_.swap)
+  val actorNodeIds: Map[ActorRef, String] = nodeActors.map(_.swap)
 
-  val edgeRoutes = graph.connections.flatMap {
-    case ((tgt, tgtPort), Edge(src, srcPort, _)) =>
-      Some((src, srcPort) -> (tgt, tgtPort))
+  val edgeRoutes: Map[PortRef, PortRef] =
+    graph.connections.flatMap {
+      case (tgt, Edge(src, _)) => Some(src -> tgt)
 
-    case ((tgt, tgtPort), IIP(data, _)) =>
-      for {
-        node <- graph.nodes.get(tgt)
-        inPort <- node.component.inPorts.find(_.id == tgtPort)
-      } nodeActors(tgt) ! Incoming(tgtPort, inPort.fromJson(data))
+      case (tgt, IIP(data, _)) =>
+        for {
+          node <- graph.nodes.get(tgt.node)
+          inPort <- node.component.inPorts.find(_.id == tgt.port)
+        } nodeActors(tgt.node) ! Incoming(tgt.port, inPort.fromJson(data))
 
-      None
+        None
+    }
+
+  override def preStart() = {
+    log.info(s"Started network for graph ${graph.id}")
   }
 
   def receive = {
     case msg @ Outgoing(port, data) =>
       actorNodeIds.get(sender()) match {
-        case Some(senderId) =>
-          edgeRoutes.get((senderId, port)).foreach {
-            case (dest, destPort) => nodeActors(dest) ! Incoming(destPort, data)
+        case Some(node) =>
+          edgeRoutes.get(PortRef(node, port)).foreach {
+            case PortRef(destNode, destPort) => nodeActors(destNode) ! Incoming(destPort, data)
           }
 
         case None =>
