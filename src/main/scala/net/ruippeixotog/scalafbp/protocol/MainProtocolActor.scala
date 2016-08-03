@@ -9,8 +9,10 @@ import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
 import net.ruippeixotog.scalafbp.protocol.message.Trace.TraceMessage
 
-class MainProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[Message] {
-  val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor))
+class MainProtocolActor(runtimeId: String, secret: String, logicActor: ActorRef)
+    extends AbstractProtocolActor[Message] {
+
+  val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor(runtimeId)))
   val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor))
   val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(logicActor)))
   val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(logicActor)))

@@ -35,7 +35,7 @@ object WebServer extends App with WsRuntimeHttpService with RegistrationHttpServ
 
   // actor that receives incoming messages (as `Message` objects) and translates them into appropriate actions for
   // `LogicActor`
-  val protocolActor = system.actorOf(Props(new MainProtocolActor(logicActor)))
+  val protocolActor = system.actorOf(Props(new MainProtocolActor(runtimeId, secret, logicActor)))
 
   // all the routes offered by this server
   val routes = registrationRoutes ~ wsRuntimeRoutes
