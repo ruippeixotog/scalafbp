@@ -1,6 +1,7 @@
 package net.ruippeixotog.scalafbp.protocol
 
-import net.ruippeixotog.scalafbp.protocol.message.Runtime._
+import net.ruippeixotog.scalafbp.protocol.message.RuntimeMessage
+import net.ruippeixotog.scalafbp.protocol.message.RuntimeMessages._
 
 class RuntimeProtocolActor(runtimeId: String) extends AbstractProtocolActor[RuntimeMessage] {
 

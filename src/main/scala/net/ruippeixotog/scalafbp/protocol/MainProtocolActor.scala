@@ -2,12 +2,7 @@ package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor._
 
-import net.ruippeixotog.scalafbp.protocol.message.Component.ComponentMessage
-import net.ruippeixotog.scalafbp.protocol.message.Graph.GraphMessage
-import net.ruippeixotog.scalafbp.protocol.message.Message
-import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
-import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
-import net.ruippeixotog.scalafbp.protocol.message.Trace.TraceMessage
+import net.ruippeixotog.scalafbp.protocol.message._
 
 class MainProtocolActor(runtimeId: String, secret: String, logicActor: ActorRef)
     extends AbstractProtocolActor[Message] {

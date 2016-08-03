@@ -4,20 +4,15 @@ import fommil.sjs.FamilyFormats
 import shapeless._
 import spray.json._
 
-import net.ruippeixotog.scalafbp.protocol.message.Component.ComponentMessage
-import net.ruippeixotog.scalafbp.protocol.message.Graph.GraphMessage
-import net.ruippeixotog.scalafbp.protocol.message.Network.NetworkMessage
-import net.ruippeixotog.scalafbp.protocol.message.Runtime.RuntimeMessage
-import net.ruippeixotog.scalafbp.protocol.message.Trace.TraceMessage
-
 sealed trait Message {
   private[message] def wrap: ProtocolWrapper
 }
 
-private[protocol] object Runtime {
-  sealed trait RuntimeMessage extends Message {
-    private[message] def wrap = ProtocolWrapper.Runtime(this)
-  }
+private[protocol] sealed trait RuntimeMessage extends Message {
+  private[message] def wrap = ProtocolWrappers.Runtime(this)
+}
+
+private[protocol] object RuntimeMessages {
 
   case class GetRuntime(
     secret: String) extends RuntimeMessage
@@ -51,10 +46,11 @@ private[protocol] object Runtime {
     secret: String) extends RuntimeMessage
 }
 
-private[protocol] object Graph {
-  sealed trait GraphMessage extends Message {
-    private[message] def wrap = ProtocolWrapper.Graph(this)
-  }
+private[protocol] sealed trait GraphMessage extends Message {
+  private[message] def wrap = ProtocolWrappers.Graph(this)
+}
+
+private[protocol] object GraphMessages {
 
   case class Clear(
     id: String,
@@ -139,10 +135,11 @@ private[protocol] object Graph {
     secret: String) extends GraphMessage
 }
 
-private[protocol] object Component {
-  sealed trait ComponentMessage extends Message {
-    private[message] def wrap = ProtocolWrapper.Component(this)
-  }
+private[protocol] sealed trait ComponentMessage extends Message {
+  private[message] def wrap = ProtocolWrappers.Component(this)
+}
+
+private[protocol] object ComponentMessages {
 
   case class List(
     secret: String) extends ComponentMessage
@@ -175,10 +172,11 @@ private[protocol] object Component {
     _value: Int) extends ComponentMessage
 }
 
-private[protocol] object Network {
-  sealed trait NetworkMessage extends Message {
-    private[message] def wrap = ProtocolWrapper.Network(this)
-  }
+private[protocol] sealed trait NetworkMessage extends Message {
+  private[message] def wrap = ProtocolWrappers.Network(this)
+}
+
+private[protocol] object NetworkMessages {
 
   case class Start(
     graph: String,
@@ -242,10 +240,11 @@ private[protocol] object Network {
   // TODO
 }
 
-private[protocol] object Trace {
-  sealed trait TraceMessage extends Message {
-    private[message] def wrap = ProtocolWrapper.Trace(this)
-  }
+private[protocol] sealed trait TraceMessage extends Message {
+  private[message] def wrap = ProtocolWrappers.Trace(this)
+}
+
+private[protocol] object TraceMessages {
 
   case class Start(
     graph: String,
@@ -257,7 +256,7 @@ private[message] sealed trait ProtocolWrapper {
   def payload: Message
 }
 
-object ProtocolWrapper {
+object ProtocolWrappers {
   private[message] case class Runtime(payload: RuntimeMessage) extends ProtocolWrapper
   private[message] case class Graph(payload: GraphMessage) extends ProtocolWrapper
   private[message] case class Component(payload: ComponentMessage) extends ProtocolWrapper

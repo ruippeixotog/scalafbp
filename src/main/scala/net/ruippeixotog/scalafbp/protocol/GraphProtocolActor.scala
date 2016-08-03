@@ -9,7 +9,8 @@ import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.graph
-import net.ruippeixotog.scalafbp.protocol.message.Graph._
+import net.ruippeixotog.scalafbp.protocol.message.GraphMessage
+import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
 
 class GraphProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[GraphMessage] {
