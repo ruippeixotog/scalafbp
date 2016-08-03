@@ -28,6 +28,28 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
     logicActor ? GraphUpdated(id, newGraph)
   }
 
+  def updateNode(id: String, nodeId: String)(f: graph.Node => graph.Node): Future[_] = {
+    update(id) { old =>
+      old.nodes.get(nodeId) match {
+        case Some(node) => old.copy(nodes = old.nodes + (nodeId -> f(node)))
+        case None =>
+          log.warn(s"Tried to update a non-existing node: $nodeId")
+          old
+      }
+    }
+  }
+
+  def updateConn(id: String, tgt: Edge)(f: graph.InConnection => graph.InConnection): Future[_] = {
+    update(id) { old =>
+      old.connections.get((tgt.node, tgt.port)) match {
+        case Some(conn) => old.copy(connections = old.connections + ((tgt.node, tgt.port) -> f(conn)))
+        case None =>
+          log.warn(s"Tried to update a non-existing connection to $tgt")
+          old
+      }
+    }
+  }
+
   def returnPayload(pf: PartialFunction[GraphMessage, Future[Any]]): PartialFunction[GraphMessage, Unit] = {
     case msg if pf.isDefinedAt(msg) =>
       val replyTo = sender()
@@ -58,6 +80,11 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
         old.copy(nodes = old.nodes - payload.id)
       }
 
+    case payload: ChangeNode =>
+      updateNode(payload.graph, payload.id) { old =>
+        old.copy(metadata = payload.metadata)
+      }
+
     case payload: AddEdge =>
       update(payload.graph) { old =>
         old.copy(connections = old.connections + ((payload.tgt.node, payload.tgt.port) ->
@@ -67,6 +94,12 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
     case payload: RemoveEdge =>
       update(payload.graph) { old =>
         old.copy(connections = old.connections - ((payload.tgt.node, payload.tgt.port)))
+      }
+
+    case payload: ChangeEdge =>
+      updateConn(payload.graph, payload.tgt) {
+        case edge: graph.Edge => edge.copy(metadata = payload.metadata)
+        case conn => conn
       }
 
     case payload: AddInitial =>

@@ -75,7 +75,7 @@ private[protocol] object GraphMessages {
 
   case class ChangeNode(
     id: String,
-    metadata: Option[Map[String, JsValue]],
+    metadata: Map[String, JsValue],
     graph: String,
     secret: String) extends GraphMessage
 
@@ -100,7 +100,7 @@ private[protocol] object GraphMessages {
   case class ChangeEdge(
     src: Edge,
     tgt: Edge,
-    metadata: Option[Map[String, JsValue]],
+    metadata: Map[String, JsValue],
     graph: String,
     secret: String) extends GraphMessage
 
