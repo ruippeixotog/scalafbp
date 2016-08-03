@@ -13,7 +13,9 @@ import net.ruippeixotog.scalafbp.protocol.message.GraphMessage
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
 import net.ruippeixotog.scalafbp.runtime.LogicActor.GraphUpdated
 
-class GraphProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[GraphMessage] {
+class GraphProtocolActor(compRegistry: ComponentRegistry, logicActor: ActorRef)
+    extends AbstractProtocolActor[GraphMessage] {
+
   var graphs = Map[String, graph.Graph]()
 
   implicit val timeout = Timeout(3.seconds)
@@ -39,9 +41,16 @@ class GraphProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[Gra
       logicActor ? GraphUpdated(payload.id, newGraph)
 
     case payload: AddNode =>
-      update(payload.graph) { old =>
-        old.copy(nodes = old.nodes + (payload.id ->
-          graph.Node(ComponentRegistry.registry(payload.component), payload.metadata.getOrElse(Map()))))
+      compRegistry.get(payload.component) match {
+        case Some(comp) =>
+          update(payload.graph) { old =>
+            old.copy(nodes = old.nodes + (payload.id ->
+              graph.Node(comp, payload.metadata.getOrElse(Map()))))
+          }
+
+        case None =>
+          log.warn(s"Unknown component: ${payload.component}")
+          Future.failed(new NoSuchElementException)
       }
 
     case payload: RemoveNode =>

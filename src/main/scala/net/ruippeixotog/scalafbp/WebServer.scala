@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.http
+package net.ruippeixotog.scalafbp
 
 import akka.actor.{ ActorSystem, Props }
 import akka.http.scaladsl.Http
@@ -6,6 +6,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings, Supervision }
 import com.typesafe.config.ConfigFactory
 
+import net.ruippeixotog.scalafbp.component.DefaultComponentRegistry
+import net.ruippeixotog.scalafbp.http.{ RegistrationHttpService, WsRuntimeHttpService }
 import net.ruippeixotog.scalafbp.protocol.MainProtocolActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor
 
@@ -30,12 +32,15 @@ object WebServer extends App with WsRuntimeHttpService with RegistrationHttpServ
   val host = config.getString("host")
   val port = config.getInt("port")
 
+  // the registry of components that will be made available to clients
+  val compRegistry = DefaultComponentRegistry
+
   // the actor that serves as the central store for the state about graphs and handles the execution of networks
   val logicActor = system.actorOf(Props(new LogicActor))
 
   // actor that receives incoming messages (as `Message` objects) and translates them into appropriate actions for
   // `LogicActor`
-  val protocolActor = system.actorOf(Props(new MainProtocolActor(runtimeId, secret, logicActor)))
+  val protocolActor = system.actorOf(Props(new MainProtocolActor(runtimeId, secret, compRegistry, logicActor)))
 
   // all the routes offered by this server
   val routes = registrationRoutes ~ wsRuntimeRoutes

@@ -2,14 +2,15 @@ package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor._
 
+import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.protocol.message._
 
-class MainProtocolActor(runtimeId: String, secret: String, logicActor: ActorRef)
+class MainProtocolActor(runtimeId: String, secret: String, compRegistry: ComponentRegistry, logicActor: ActorRef)
     extends AbstractProtocolActor[Message] {
 
   val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor(runtimeId)))
-  val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor))
-  val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(logicActor)))
+  val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor(compRegistry)))
+  val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(compRegistry, logicActor)))
   val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(logicActor)))
   val traceProtocolActor = context.actorOf(Props(new TraceProtocolActor))
 
