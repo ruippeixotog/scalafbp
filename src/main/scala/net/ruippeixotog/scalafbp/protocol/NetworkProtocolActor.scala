@@ -23,6 +23,7 @@ class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[N
     def receive = {
       case output: ComponentActor.Output => inner ! output.toMessage
       case error: LogicActor.Error => inner ! error.toMessage
+      case finished: NetworkController.Finished => inner ! finished.toMessage
       case msg => log.warn(s"Cannot proxy unexpected message $msg to client")
     }
   }

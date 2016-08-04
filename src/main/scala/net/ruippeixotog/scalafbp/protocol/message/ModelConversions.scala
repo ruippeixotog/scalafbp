@@ -43,6 +43,10 @@ object ToMessageConversions {
       Stopped(st.graph, time, st.running, st.started, st.uptime)
   }
 
+  implicit class FinishedConvertible(val st: NetworkController.Finished) extends AnyVal with ToMessageConvertible {
+    def toMessage = Stopped(st.graph, st.time, false, true, Some(st.uptime))
+  }
+
   implicit class OutputConvertible(val output: ComponentActor.Output) extends AnyVal with ToMessageConvertible {
     def toMessage = output match {
       case ComponentActor.Message(msg) => Output(msg, Some("message"), None)

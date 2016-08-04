@@ -9,14 +9,17 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
   def notRunningBehavior(stopped: Boolean): Receive = {
     case Start(graph, outputActor) =>
       log.info(s"Started network of graph $graphId")
-      val controllerActor = context.actorOf(Props(new NetworkBroker(graph, outputActor)))
-      context.watch(controllerActor)
-      context.become(runningBehavior(controllerActor))
+      val brokerActor = context.actorOf(Props(new NetworkBroker(graph, outputActor)))
+      context.watch(brokerActor)
+      context.become(runningBehavior(brokerActor, outputActor))
 
     case GetStatus => sender() ! Status(graphId, false, !stopped, None)
   }
 
-  def runningBehavior(brokerActor: ActorRef, startTime: Long = System.currentTimeMillis()): Receive = {
+  def runningBehavior(
+    brokerActor: ActorRef,
+    outputActor: ActorRef,
+    startTime: Long = System.currentTimeMillis()): Receive = {
 
     case GetStatus =>
       sender() ! Status(graphId, true, true, Some((System.currentTimeMillis() - startTime) / 1000))
@@ -24,14 +27,16 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
     case Stop =>
       log.info(s"Stopping network of graph $graphId...")
       context.stop(brokerActor)
-      context.become(waitingForStopBehavior(brokerActor))
+      context.become(waitingForStopBehavior(brokerActor, outputActor, startTime))
 
     case Terminated(`brokerActor`) =>
       log.info(s"Finished network of graph $graphId")
+      outputActor ! Finished(graphId, System.currentTimeMillis(), System.currentTimeMillis() - startTime / 1000)
       context.become(notRunningBehavior(false))
   }
 
-  def waitingForStopBehavior(controllerActor: ActorRef): Receive = {
+  def waitingForStopBehavior(controllerActor: ActorRef, outputActor: ActorRef, startTime: Long): Receive = {
+
     case Terminated(`controllerActor`) =>
       log.info(s"Stopped network of graph $graphId")
       unstashAll()
@@ -49,4 +54,5 @@ object NetworkController {
   case object Stop
 
   case class Status(graph: String, running: Boolean, started: Boolean, uptime: Option[Long])
+  case class Finished(graph: String, time: Long, uptime: Long)
 }
