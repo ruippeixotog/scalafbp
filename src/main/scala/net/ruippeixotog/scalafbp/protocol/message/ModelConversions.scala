@@ -5,7 +5,8 @@ import net.ruippeixotog.scalafbp.{ component, graph }
 import net.ruippeixotog.scalafbp.graph.{ NetworkController, NetworkController$ }
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
-import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages.{ Output, Started, Status, Stopped }
+import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
+import net.ruippeixotog.scalafbp.runtime.LogicActor
 
 object ToMessageConversions {
 
@@ -47,6 +48,10 @@ object ToMessageConversions {
       case ComponentActor.Message(msg) => Output(msg, Some("message"), None)
       case ComponentActor.PreviewURL(msg, url) => Output(msg, Some("previewurl"), Some(url))
     }
+  }
+
+  implicit class ErrorConvertible(val error: LogicActor.Error) extends AnyVal with ToMessageConvertible {
+    def toMessage = Error(error.msg)
   }
 }
 

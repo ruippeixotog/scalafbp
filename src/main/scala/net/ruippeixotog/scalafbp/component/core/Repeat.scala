@@ -4,7 +4,7 @@ import akka.actor.{ Actor, Props }
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
+import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort, SimpleComponentActor }
 
 case object Repeat extends Component {
   val name = "core/Repeat"
@@ -14,8 +14,8 @@ case object Repeat extends Component {
   val inPorts = List(InPort[JsValue]("in", "Packet to forward"))
   val outPorts = List(OutPort[JsValue]("out", "Forwarded packet"))
 
-  val instanceProps = Props(new Actor {
-    def receive = {
+  val instanceProps = Props(new SimpleComponentActor(this) {
+    def receiveData = {
       case Incoming("in", data) => sender() ! Outgoing("out", data)
     }
   })

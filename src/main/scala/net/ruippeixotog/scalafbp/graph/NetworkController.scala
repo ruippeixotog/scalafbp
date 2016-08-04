@@ -16,16 +16,17 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
     case GetStatus => sender() ! Status(graphId, false, !stopped, None)
   }
 
-  def runningBehavior(orchestratorActor: ActorRef, startTime: Long = System.currentTimeMillis()): Receive = {
+  def runningBehavior(brokerActor: ActorRef, startTime: Long = System.currentTimeMillis()): Receive = {
+
     case GetStatus =>
       sender() ! Status(graphId, true, true, Some((System.currentTimeMillis() - startTime) / 1000))
 
     case Stop =>
       log.info(s"Stopping network of graph $graphId...")
-      context.stop(orchestratorActor)
-      context.become(waitingForStopBehavior(orchestratorActor))
+      context.stop(brokerActor)
+      context.become(waitingForStopBehavior(brokerActor))
 
-    case Terminated(`orchestratorActor`) =>
+    case Terminated(`brokerActor`) =>
       log.info(s"Finished network of graph $graphId")
       context.become(notRunningBehavior(false))
   }
