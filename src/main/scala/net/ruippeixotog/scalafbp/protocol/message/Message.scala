@@ -56,7 +56,7 @@ private[protocol] object GraphMessages {
     id: String,
     name: Option[String],
     library: Option[String],
-    main: Option[String],
+    main: Option[Boolean],
     icon: Option[String],
     description: Option[String],
     secret: String) extends GraphMessage
