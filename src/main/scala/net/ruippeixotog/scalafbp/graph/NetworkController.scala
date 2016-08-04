@@ -9,7 +9,7 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
   def notRunningBehavior(stopped: Boolean): Receive = {
     case Start(graph, outputActor) =>
       log.info(s"Started network of graph $graphId")
-      val controllerActor = context.actorOf(Props(new NetworkOrchestrator(graph, outputActor)))
+      val controllerActor = context.actorOf(Props(new NetworkBroker(graph, outputActor)))
       context.watch(controllerActor)
       context.become(runningBehavior(controllerActor))
 

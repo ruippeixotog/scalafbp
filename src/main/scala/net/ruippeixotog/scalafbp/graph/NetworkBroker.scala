@@ -4,7 +4,7 @@ import akka.actor.{ Actor, ActorLogging, ActorRef }
 
 import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing, Output }
 
-class NetworkOrchestrator(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
+class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
 
   val nodeActors: Map[String, ActorRef] =
     graph.nodes.map {
