@@ -10,7 +10,9 @@ sealed trait InConnection {
   def metadata: Map[String, JsValue]
 }
 
-case class PortRef(node: String, port: String)
+case class PortRef(node: String, port: String) {
+  override def toString = s"$node[$port]"
+}
 
 case class Edge(src: PortRef, metadata: Map[String, JsValue]) extends InConnection
 case class IIP(value: JsValue, metadata: Map[String, JsValue]) extends InConnection

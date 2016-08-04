@@ -24,7 +24,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     case (tgt, IIP(jsData, _)) =>
       deserialize(tgt, jsData) match {
         case Some(tgtData) =>
-          log.info(s"[IIP -> $tgt] $tgtData")
+          log.info(s"DATA -> $tgt: $tgtData")
           nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
           nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
 
@@ -66,7 +66,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
         routes(src).foreach { tgt =>
           convertTo(src, tgt, srcData) match {
             case Some(tgtData) =>
-              log.info(s"[$src -> $tgt] $tgtData ${if (srcData == tgtData) "" else s"($srcData)"}")
+              log.info(s"$src -> $tgt: $tgtData${if (srcData == tgtData) "" else s" ($srcData)"}")
               nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
 
             case None =>
