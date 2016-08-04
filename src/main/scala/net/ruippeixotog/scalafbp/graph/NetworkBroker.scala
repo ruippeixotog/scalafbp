@@ -46,7 +46,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     }
 
   def convertTo(from: PortRef, to: PortRef, data: Any): Option[Any] =
-    serialize(from, data).map(deserialize(to, _))
+    serialize(from, data).flatMap(deserialize(to, _))
 
   def withKnownSender(msg: Any)(f: String => Unit): Unit = {
     actorNodeIds.get(sender) match {
@@ -91,7 +91,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
     case Terminated(ref) =>
       actorNodeIds.get(ref).foreach { node =>
-        val (disconnectedRoutes, newRoutes) = routes.partition(_._1 == node)
+        val (disconnectedRoutes, newRoutes) = routes.partition(_._1.node == node)
 
         disconnectedRoutes.valuesIterator.flatten.foreach { tgt =>
           nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
