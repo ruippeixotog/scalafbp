@@ -237,6 +237,30 @@ private[protocol] object NetworkMessages {
     error: String,
     graph: String) extends NetworkMessage
 
+  case class Port(node: String, port: String)
+
+  case class Connect(
+    id: String,
+    src: Option[Port],
+    tgt: Port,
+    graph: String,
+    subgraph: Option[List[String]]) extends NetworkMessage
+
+  case class Data(
+    id: String,
+    src: Option[Port],
+    tgt: Port,
+    data: JsValue,
+    graph: String,
+    subgraph: Option[List[String]]) extends NetworkMessage
+
+  case class Disconnect(
+    id: String,
+    src: Option[Port],
+    tgt: Port,
+    graph: String,
+    subgraph: Option[List[String]]) extends NetworkMessage
+
   // TODO
 }
 

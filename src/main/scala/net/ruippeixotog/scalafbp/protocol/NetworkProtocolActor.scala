@@ -8,7 +8,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
-import net.ruippeixotog.scalafbp.graph.NetworkController
+import net.ruippeixotog.scalafbp.graph.{ NetworkBroker, NetworkController }
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
@@ -24,6 +24,7 @@ class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[N
       case output: ComponentActor.Output => inner ! output.toMessage
       case error: LogicActor.Error => inner ! error.toMessage
       case finished: NetworkController.Finished => inner ! finished.toMessage
+      case activity: NetworkBroker.Activity => inner ! activity.toMessage
       case msg => log.warn(s"Cannot proxy unexpected message $msg to client")
     }
   }

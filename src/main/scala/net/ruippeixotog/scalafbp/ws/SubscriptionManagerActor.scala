@@ -40,7 +40,7 @@ object SubscriptionManagerActor {
     // Source that emits messages for clients. A new actor is materialized for each client. Messages sent to that actor
     // are flowed to the output end of this source.
     // The `managerActor` is notified with a `Subscribe` message when the actor is created.
-    val out = Source.actorRef[Out](1, OverflowStrategy.fail)
+    val out = Source.actorRef[Out](100, OverflowStrategy.fail)
       .mapMaterializedValue(managerActor ! Subscribe(id, _))
 
     // Wrap the source and sink defined above into a two-ended flow

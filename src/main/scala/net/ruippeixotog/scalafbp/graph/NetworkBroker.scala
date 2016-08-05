@@ -1,10 +1,13 @@
 package net.ruippeixotog.scalafbp.graph
 
+import scala.util.Try
+
 import akka.actor.{ Actor, ActorLogging, ActorRef, Terminated }
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.{ InPort, OutPort }
+import net.ruippeixotog.scalafbp.graph.NetworkBroker.{ Connect, Data, Disconnect }
 import net.ruippeixotog.scalafbp.runtime.LogicActor.Error
 
 class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
@@ -27,6 +30,9 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
           log.info(s"DATA -> $tgt: $tgtData")
           nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
           nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+          outputActor ! Connect(graph.id, None, tgt)
+          outputActor ! Data(graph.id, None, tgt, jsData)
+          outputActor ! Disconnect(graph.id, None, tgt)
 
         case None =>
           outputActor ! Error(s"Type mismatch in initial data for $tgt")
@@ -41,8 +47,8 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     }
 
   def deserialize(portRef: PortRef, data: JsValue): Option[Any] =
-    graph.nodes(portRef.node).component.inPorts.find(_.id == portRef.port).map { inPort =>
-      inPort.asInstanceOf[InPort[Any]].fromJson(data)
+    graph.nodes(portRef.node).component.inPorts.find(_.id == portRef.port).flatMap { inPort =>
+      Try(inPort.asInstanceOf[InPort[Any]].fromJson(data)).toOption
     }
 
   def convertTo(from: PortRef, to: PortRef, data: Any): Option[Any] =
@@ -64,14 +70,23 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
         val src = PortRef(srcNode, srcPort)
 
         routes(src).foreach { tgt =>
-          convertTo(src, tgt, srcData) match {
-            case Some(tgtData) =>
+          val jsDataOpt = serialize(src, srcData)
+          val tgtDataOpt = jsDataOpt.flatMap(deserialize(tgt, _))
+
+          (jsDataOpt, tgtDataOpt) match {
+            case (Some(jsData), Some(tgtData)) =>
               log.info(s"$src -> $tgt: $tgtData${if (srcData == tgtData) "" else s" ($srcData)"}")
               nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
+              outputActor ! Data(graph.id, Some(src), tgt, jsData)
 
-            case None =>
+            case (None, _) =>
               outputActor ! Error(s"Type mismatch in message from $src to $tgt")
-              log.error(s"Network failed: could not convert data between $src and $tgt")
+              log.error(s"Network failed: could not serialize $srcData (sent by $src) to JSON")
+              context.stop(self)
+
+            case (Some(jsData), None) =>
+              outputActor ! Error(s"Type mismatch in message from $src to $tgt")
+              log.error(s"Network failed: could not deserialize $jsData (sent by $src) to a format supported by $tgt")
               context.stop(self)
           }
         }
@@ -83,6 +98,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
         routes(src).foreach { tgt =>
           nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+          outputActor ! Disconnect(graph.id, Some(src), tgt)
         }
 
         log.info(s"Port $src disconnected")
@@ -93,8 +109,12 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       actorNodeIds.get(ref).foreach { node =>
         val (disconnectedRoutes, newRoutes) = routes.partition(_._1.node == node)
 
-        disconnectedRoutes.valuesIterator.flatten.foreach { tgt =>
-          nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+        disconnectedRoutes.foreach {
+          case (src, tgts) =>
+            tgts.foreach { tgt =>
+              nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+              outputActor ! Disconnect(graph.id, Some(src), tgt)
+            }
         }
 
         log.info(s"Node $node terminated")
@@ -110,6 +130,24 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       graph.connections.toSeq.collect { case (tgt, Edge(src, _)) => src -> tgt }
         .groupBy(_._1).mapValues(_.map(_._2)).withDefaultValue(Nil)
 
+    edgeRoutes.foreach {
+      case (src, tgts) =>
+        tgts.foreach(outputActor ! Connect(graph.id, Some(src), _))
+    }
+
     brokerBehavior(nodeActors.size, edgeRoutes)
   }
+}
+
+object NetworkBroker {
+
+  sealed trait Activity {
+    def graph: String
+    def src: Option[PortRef]
+    def tgt: PortRef
+  }
+
+  case class Connect(graph: String, src: Option[PortRef], tgt: PortRef) extends Activity
+  case class Disconnect(graph: String, src: Option[PortRef], tgt: PortRef) extends Activity
+  case class Data(graph: String, src: Option[PortRef], tgt: PortRef, data: JsValue) extends Activity
 }

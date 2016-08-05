@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.protocol.message
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.{ component, graph }
-import net.ruippeixotog.scalafbp.graph.{ NetworkController, NetworkController$ }
+import net.ruippeixotog.scalafbp.graph.{ NetworkBroker, NetworkController, PortRef }
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
@@ -45,6 +45,47 @@ object ToMessageConversions {
 
   implicit class FinishedConvertible(val st: NetworkController.Finished) extends AnyVal with ToMessageConvertible {
     def toMessage = Stopped(st.graph, st.time, false, true, Some(st.uptime))
+  }
+
+  implicit class PortRefConvertible(val portRef: graph.PortRef) extends AnyVal {
+    def toMessagePart = Port(portRef.node, portRef.port)
+
+    def toInRef = s"${portRef.node}() ${portRef.port.toUpperCase}"
+    def toOutRef = s"${portRef.port.toUpperCase} ${portRef.node}()"
+  }
+
+  implicit class ActivityConvertible(val act: NetworkBroker.Activity) extends AnyVal with ToMessageConvertible {
+    private[this] def toRef = s"${act.src.fold("DATA")(_.toInRef)} -> ${act.tgt.toOutRef}"
+
+    def toMessage = act match {
+      case connect: NetworkBroker.Connect =>
+        Connect(toRef, connect.src.map(_.toMessagePart), connect.tgt.toMessagePart, connect.graph, None)
+
+      case data: NetworkBroker.Data =>
+        Data(toRef, data.src.map(_.toMessagePart), data.tgt.toMessagePart, data.data, data.graph, None)
+
+      case disconnect: NetworkBroker.Disconnect =>
+        Disconnect(toRef, disconnect.src.map(_.toMessagePart), disconnect.tgt.toMessagePart, disconnect.graph, None)
+    }
+  }
+
+  implicit class DataConvertible(val conn: NetworkBroker.Data) extends AnyVal with ToMessageConvertible {
+    def toMessage = Data(
+      s"${conn.src.fold("DATA")(_.toInRef)} -> ${conn.tgt.toOutRef}",
+      conn.src.map(_.toMessagePart),
+      conn.tgt.toMessagePart,
+      conn.data,
+      conn.graph,
+      None)
+  }
+
+  implicit class PortConvertible(val conn: NetworkBroker.Disconnect) extends AnyVal with ToMessageConvertible {
+    def toMessage = Disconnect(
+      s"${conn.src.fold("DATA")(_.toInRef)} -> ${conn.tgt.toOutRef}",
+      conn.src.map(_.toMessagePart),
+      conn.tgt.toMessagePart,
+      conn.graph,
+      None)
   }
 
   implicit class OutputConvertible(val output: ComponentActor.Output) extends AnyVal with ToMessageConvertible {
