@@ -1,8 +1,8 @@
-package net.ruippeixotog.scalafbp.graph
+package net.ruippeixotog.scalafbp.runtime
 
 import akka.actor.{ Status => _, _ }
 
-import net.ruippeixotog.scalafbp.graph.NetworkController._
+import net.ruippeixotog.scalafbp.runtime.NetworkController._
 
 class NetworkController(graphId: String) extends Actor with ActorLogging with Stash {
 

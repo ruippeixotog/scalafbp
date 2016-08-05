@@ -8,12 +8,11 @@ import akka.pattern.ask
 import akka.util.Timeout
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
-import net.ruippeixotog.scalafbp.graph.{ NetworkBroker, NetworkController }
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
-import net.ruippeixotog.scalafbp.runtime.LogicActor
 import net.ruippeixotog.scalafbp.runtime.LogicActor.{ GetNetworkStatus, StartNetwork, StopNetwork }
+import net.ruippeixotog.scalafbp.runtime.{ LogicActor, NetworkBroker, NetworkController }
 
 class NetworkProtocolActor(logicActor: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
   implicit val timeout = Timeout(3.seconds)

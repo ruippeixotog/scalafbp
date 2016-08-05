@@ -1,12 +1,11 @@
 package net.ruippeixotog.scalafbp.protocol.message
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
-import net.ruippeixotog.scalafbp.{ component, graph }
-import net.ruippeixotog.scalafbp.graph.{ NetworkBroker, NetworkController, PortRef }
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
-import net.ruippeixotog.scalafbp.runtime.LogicActor
+import net.ruippeixotog.scalafbp.runtime.{ LogicActor, NetworkBroker, NetworkController }
+import net.ruippeixotog.scalafbp.{ component, runtime }
 
 object ToMessageConversions {
 
@@ -47,7 +46,7 @@ object ToMessageConversions {
     def toMessage = Stopped(st.graph, st.time, false, true, Some(st.uptime))
   }
 
-  implicit class PortRefConvertible(val portRef: graph.PortRef) extends AnyVal {
+  implicit class PortRefConvertible(val portRef: runtime.PortRef) extends AnyVal {
     def toMessagePart = Port(portRef.node, portRef.port)
 
     def toInRef = s"${portRef.node}() ${portRef.port.toUpperCase}"
@@ -103,6 +102,6 @@ object ToMessageConversions {
 object FromMessageConversions {
 
   implicit class EdgeConvertible(val edge: Edge) extends AnyVal {
-    def toPortRef = graph.PortRef(edge.node, edge.port)
+    def toPortRef = runtime.PortRef(edge.node, edge.port)
   }
 }

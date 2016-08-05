@@ -3,9 +3,8 @@ package net.ruippeixotog.scalafbp.runtime
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.event.slf4j.SLF4JLogging
 
-import net.ruippeixotog.scalafbp.graph.NetworkController.{ GetStatus, Start, Stop }
-import net.ruippeixotog.scalafbp.graph.{ Graph, NetworkController }
 import net.ruippeixotog.scalafbp.runtime.LogicActor._
+import net.ruippeixotog.scalafbp.runtime.NetworkController.{ GetStatus, Start, Stop }
 
 class LogicActor extends Actor with SLF4JLogging {
   var graphs = Map[String, Graph]()

@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.graph
+package net.ruippeixotog.scalafbp.runtime
 
 import scala.util.Try
 
@@ -7,8 +7,8 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.{ InPort, OutPort }
-import net.ruippeixotog.scalafbp.graph.NetworkBroker.{ Connect, Data, Disconnect }
 import net.ruippeixotog.scalafbp.runtime.LogicActor.Error
+import net.ruippeixotog.scalafbp.runtime.NetworkBroker.{ Connect, Data, Disconnect }
 
 class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
 

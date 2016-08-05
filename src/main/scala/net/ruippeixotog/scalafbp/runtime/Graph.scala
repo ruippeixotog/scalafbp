@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.graph
+package net.ruippeixotog.scalafbp.runtime
 
 import spray.json.JsValue
 
