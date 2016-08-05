@@ -7,8 +7,7 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.{ InPort, OutPort }
-import net.ruippeixotog.scalafbp.runtime.LogicActor.Error
-import net.ruippeixotog.scalafbp.runtime.NetworkBroker.{ Connect, Data, Disconnect }
+import net.ruippeixotog.scalafbp.runtime.NetworkBroker._
 
 class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
 
@@ -150,4 +149,6 @@ object NetworkBroker {
   case class Connect(graph: String, src: Option[PortRef], tgt: PortRef) extends Activity
   case class Disconnect(graph: String, src: Option[PortRef], tgt: PortRef) extends Activity
   case class Data(graph: String, src: Option[PortRef], tgt: PortRef, data: JsValue) extends Activity
+
+  case class Error(msg: String)
 }

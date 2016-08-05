@@ -4,7 +4,7 @@ import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
-import net.ruippeixotog.scalafbp.runtime.{ LogicActor, NetworkBroker, NetworkController }
+import net.ruippeixotog.scalafbp.runtime.{ NetworkBroker, NetworkController }
 import net.ruippeixotog.scalafbp.{ component, runtime }
 
 object ToMessageConversions {
@@ -94,7 +94,7 @@ object ToMessageConversions {
     }
   }
 
-  implicit class ErrorConvertible(val error: LogicActor.Error) extends AnyVal with ToMessageConvertible {
+  implicit class ErrorConvertible(val error: NetworkBroker.Error) extends AnyVal with ToMessageConvertible {
     def toMessage = Error(error.msg)
   }
 }
