@@ -11,6 +11,7 @@ import net.ruippeixotog.scalafbp.runtime.NetworkBroker._
 
 class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
 
+  // a map from node IDs to actors running the nodes
   val nodeActors: Map[String, ActorRef] =
     graph.nodes.map {
       case (id, node) =>
@@ -20,25 +21,18 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
         id -> actorRef
     }
 
+  // the reverse index of `nodeActors`
   val actorNodeIds: Map[ActorRef, String] = nodeActors.map(_.swap)
 
-  graph.initials.foreach {
-    case (tgt, Initial(jsData, _)) =>
-      deserialize(tgt, jsData) match {
-        case Some(tgtData) =>
-          log.info(s"DATA -> $tgt: $tgtData")
-          nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
-          nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
-          outputActor ! Connect(graph.id, None, tgt)
-          outputActor ! Data(graph.id, None, tgt, jsData)
-          outputActor ! Disconnect(graph.id, None, tgt)
+  // the initial routing table mapping outgoing ports to a list of destination ports to which packets should be sent
+  val initialRoutes: Map[PortRef, Iterable[PortRef]] =
+    graph.edges.mapValues(_.keys).withDefaultValue(Set.empty)
 
-        case None =>
-          outputActor ! Error(s"Type mismatch in initial data for $tgt")
-          log.error(s"Network failed: could not deserialize initial data for $tgt")
-          context.stop(self)
-      }
-  }
+  // a map containing the initial number of inwards edges of each inPort
+  val initialInEdgesCount: Map[PortRef, Int] =
+    initialRoutes.valuesIterator.flatten.foldLeft(Map[PortRef, Int]()) { (acc, port) =>
+      acc + (port -> (acc.getOrElse(port, 0) + 1))
+    }.withDefaultValue(0)
 
   def serialize(portRef: PortRef, data: Any): Option[JsValue] =
     graph.nodes(portRef.node).component.outPorts.find(_.id == portRef.port).map { outPort =>
@@ -53,6 +47,41 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
   def convertTo(from: PortRef, to: PortRef, data: Any): Option[Any] =
     serialize(from, data).flatMap(deserialize(to, _))
 
+  def startNetwork(): Unit = {
+
+    // send the initial data packets to node actors and send full [Connect, Data, Disconnect] sequence to `outputActor`
+    graph.initials.foreach {
+      case (tgt, Initial(jsData, _)) =>
+        deserialize(tgt, jsData) match {
+          case Some(tgtData) =>
+            log.info(s"DATA -> $tgt: $tgtData")
+            nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
+            outputActor ! Connect(graph.id, None, tgt)
+            outputActor ! Data(graph.id, None, tgt, jsData)
+            outputActor ! Disconnect(graph.id, None, tgt)
+
+          case None =>
+            outputActor ! Error(s"Type mismatch in initial data for $tgt")
+            log.error(s"Network failed: could not deserialize initial data for $tgt")
+            context.stop(self)
+        }
+    }
+
+    // send a Connect message to `outputActor` for each edge
+    initialRoutes.foreach {
+      case (src, tgts) => tgts.foreach(outputActor ! Connect(graph.id, Some(src), _))
+    }
+
+    // send an immediate `InPortDisconnected` message to each node actor with an unconnected inPort
+    graph.nodes.iterator.foreach {
+      case (nodeId, node) =>
+        node.component.inPorts.foreach { inPort =>
+          if (initialInEdgesCount(PortRef(nodeId, inPort.id)) == 0)
+            nodeActors(nodeId) ! InPortDisconnected(inPort.id)
+        }
+    }
+  }
+
   def withKnownSender(msg: Any)(f: String => Unit): Unit = {
     actorNodeIds.get(sender) match {
       case Some(srcNode) => f(srcNode)
@@ -63,7 +92,11 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     }
   }
 
-  def brokerBehavior(activeNodes: Int, routes: Map[PortRef, Set[PortRef]]): Actor.Receive = {
+  def brokerBehavior(
+    activeNodes: Int,
+    routes: Map[PortRef, Iterable[PortRef]],
+    inEdgesCount: Map[PortRef, Int]): Actor.Receive = {
+
     case msg @ Outgoing(srcPort, srcData) =>
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
@@ -95,45 +128,50 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
 
-        routes(src).foreach { tgt =>
-          nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+        val newInEdgesCount = routes(src).foldLeft(inEdgesCount) { (acc, tgt) =>
           outputActor ! Disconnect(graph.id, Some(src), tgt)
+
+          if (acc(tgt) > 1) {
+            acc + (tgt -> (acc(tgt) - 1))
+          } else {
+            nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+            acc - tgt
+          }
         }
 
         log.info(s"Port $src disconnected")
-        context.become(brokerBehavior(activeNodes, routes - src))
+        context.become(brokerBehavior(activeNodes, routes - src, newInEdgesCount))
       }
 
     case Terminated(ref) =>
       actorNodeIds.get(ref).foreach { node =>
         val (disconnectedRoutes, newRoutes) = routes.partition(_._1.node == node)
 
-        disconnectedRoutes.foreach {
-          case (src, tgts) =>
-            tgts.foreach { tgt =>
-              nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+        val newInEdgesCount = disconnectedRoutes.foldLeft(inEdgesCount) {
+          case (acc, (src, tgts)) =>
+            tgts.foldLeft(acc) { (acc2, tgt) =>
               outputActor ! Disconnect(graph.id, Some(src), tgt)
+
+              if (acc2(tgt) > 1) {
+                acc2 + (tgt -> (acc2(tgt) - 1))
+              } else {
+                nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
+                acc2 - tgt
+              }
             }
         }
 
         log.info(s"Node $node terminated")
         if (activeNodes == 1) context.stop(self)
-        else context.become(brokerBehavior(activeNodes - 1, newRoutes))
+        else context.become(brokerBehavior(activeNodes - 1, newRoutes, newInEdgesCount))
       }
 
     case output: Output => outputActor ! output
   }
 
   def receive = {
-    val edgeRoutes: Map[PortRef, Set[PortRef]] =
-      graph.edges.mapValues(_.keySet).withDefaultValue(Set.empty)
-
-    edgeRoutes.foreach {
-      case (src, tgts) =>
-        tgts.foreach(outputActor ! Connect(graph.id, Some(src), _))
-    }
-
-    brokerBehavior(nodeActors.size, edgeRoutes)
+    startNetwork()
+    brokerBehavior(nodeActors.size, initialRoutes, initialInEdgesCount)
   }
 }
 
