@@ -22,8 +22,8 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
   val actorNodeIds: Map[ActorRef, String] = nodeActors.map(_.swap)
 
-  graph.connections.collect {
-    case (tgt, IIP(jsData, _)) =>
+  graph.initials.foreach {
+    case (tgt, Initial(jsData, _)) =>
       deserialize(tgt, jsData) match {
         case Some(tgtData) =>
           log.info(s"DATA -> $tgt: $tgtData")
@@ -63,7 +63,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     }
   }
 
-  def brokerBehavior(activeNodes: Int, routes: Map[PortRef, Seq[PortRef]]): Actor.Receive = {
+  def brokerBehavior(activeNodes: Int, routes: Map[PortRef, Set[PortRef]]): Actor.Receive = {
     case msg @ Outgoing(srcPort, srcData) =>
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
@@ -125,9 +125,8 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
   }
 
   def receive = {
-    val edgeRoutes: Map[PortRef, Seq[PortRef]] =
-      graph.connections.toSeq.collect { case (tgt, Edge(src, _)) => src -> tgt }
-        .groupBy(_._1).mapValues(_.map(_._2)).withDefaultValue(Nil)
+    val edgeRoutes: Map[PortRef, Set[PortRef]] =
+      graph.edges.mapValues(_.keySet).withDefaultValue(Set.empty)
 
     edgeRoutes.foreach {
       case (src, tgts) =>

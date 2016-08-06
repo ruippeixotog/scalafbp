@@ -41,23 +41,22 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       graphStore.updateNode(payload.graph, payload.id)(_.copy(metadata = payload.metadata))
 
     case payload: AddEdge =>
-      graphStore.createConn(payload.graph, payload.tgt.toPortRef,
-        runtime.Edge(payload.src.toPortRef, payload.metadata.getOrElse(Map())))
+      graphStore.createEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef,
+        runtime.Edge(payload.metadata.getOrElse(Map())))
 
     case payload: RemoveEdge =>
-      graphStore.deleteConn(payload.graph, payload.tgt.toPortRef)
+      graphStore.deleteEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef)
 
     case payload: ChangeEdge =>
-      graphStore.updateConn(payload.graph, payload.tgt.toPortRef) {
-        case runtime.IIP(value, metadata) => runtime.IIP(value, payload.metadata)
-        case runtime.Edge(src, metadata) => runtime.Edge(src, payload.metadata)
+      graphStore.updateEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef) {
+        _.copy(metadata = payload.metadata)
       }
 
     case payload: AddInitial =>
-      graphStore.createConn(payload.graph, payload.tgt.toPortRef,
-        runtime.IIP(payload.src.data, payload.metadata.getOrElse(Map())))
+      graphStore.createInitial(payload.graph, payload.tgt.toPortRef,
+        runtime.Initial(payload.src.data, payload.metadata.getOrElse(Map())))
 
     case payload: RemoveInitial =>
-      graphStore.deleteConn(payload.graph, payload.tgt.toPortRef)
+      graphStore.deleteInitial(payload.graph, payload.tgt.toPortRef)
   }
 }
