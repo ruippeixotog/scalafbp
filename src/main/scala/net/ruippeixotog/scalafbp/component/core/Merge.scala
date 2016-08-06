@@ -20,7 +20,7 @@ case object Merge extends Component {
     OutPort[JsValue]("out", "Packets from both the first and the second port"))
 
   val instanceProps = Props(new SimpleComponentActor(this) {
-    def receiveData = {
+    def receive = {
       case Incoming(_, data) => sender() ! Outgoing("out", data)
     }
   })

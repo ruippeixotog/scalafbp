@@ -3,7 +3,7 @@ package net.ruippeixotog.scalafbp.component.core
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing }
+import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component._
 
 object Output extends Component {
@@ -15,7 +15,7 @@ object Output extends Component {
   val outPorts = List(OutPort[JsValue]("out", "Forwarded packet"))
 
   val instanceProps = Props(new SimpleComponentActor(this) {
-    def receiveData = {
+    def receive = {
       case Incoming("in", data: JsValue) =>
         sender() ! ComponentActor.Message(data.compactPrint)
         sender() ! Outgoing("out", data)
