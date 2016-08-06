@@ -3,69 +3,37 @@ package net.ruippeixotog.scalafbp.runtime
 import scala.concurrent.{ ExecutionContext, Future }
 
 import akka.event.slf4j.SLF4JLogging
-
-import net.ruippeixotog.scalafbp.runtime
+import monocle.Lens
+import monocle.function.At.at
+import monocle.macros.GenLens
+import monocle.std.map._
+import monocle.std.option._
 
 class GraphStore(implicit ec: ExecutionContext) extends SLF4JLogging {
   private[this] var graphs = Map[String, Graph]()
 
-  private[this] def withLock[T](block: => T): Future[T] =
-    Future(graphs.synchronized(block)) // TODO improve this later, e.g. by changing to an actor?
+  private[this] def updateLock(f: Map[String, Graph] => Map[String, Graph]): Future[Unit] =
+    Future(synchronized(graphs = f(graphs))) // TODO improve this later, e.g. by changing to an actor?
 
-  def get(id: String) = graphs.get(id)
+  private[this] def graphLens(id: String): Lens[Map[String, Graph], Option[Graph]] = at(id)
 
-  def create(id: String, graph: Graph)(implicit ec: ExecutionContext): Future[Unit] = withLock {
-    graphs += id -> graph
-  }
+  private[this] def nodeLens(id: String, nodeId: String) =
+    graphLens(id) ^<-? some ^|-> GenLens[Graph](_.nodes) ^|-> at(nodeId)
 
-  def update(id: String)(f: Graph => Graph): Future[Unit] = withLock {
-    val oldGraph = graphs.getOrElse(id, runtime.Graph(id))
-    graphs += id -> f(oldGraph)
-  }
+  private[this] def connLens(id: String, tgt: PortRef) =
+    graphLens(id) ^<-? some ^|-> GenLens[Graph](_.connections) ^|-> at(tgt)
 
-  def getNode(id: String, nodeId: String) = graphs.get(id).flatMap(_.nodes.get(nodeId))
+  def get(id: String) = graphLens(id).get(graphs)
+  def create(id: String, graph: Graph) = updateLock { graphLens(id).set(Some(graph)) }
+  def update(id: String)(f: Graph => Graph) = updateLock { graphLens(id).modify(_.map(f)) }
 
-  def createNode(id: String, nodeId: String, node: Node): Future[Unit] = update(id) { old =>
-    old.copy(nodes = old.nodes + (nodeId -> node))
-  }
+  def getNode(id: String, nodeId: String) = nodeLens(id, nodeId).getOption(graphs).flatten
+  def createNode(id: String, nodeId: String, node: Node) = updateLock { nodeLens(id, nodeId).set(Some(node)) }
+  def updateNode(id: String, nodeId: String)(f: Node => Node) = updateLock { nodeLens(id, nodeId).modify(_.map(f)) }
+  def deleteNode(id: String, nodeId: String) = updateLock { nodeLens(id, nodeId).set(None) }
 
-  def updateOrDeleteNode(id: String, nodeId: String)(f: Node => Option[Node]) = update(id) { old =>
-    old.nodes.get(nodeId) match {
-      case Some(node) =>
-        f(node) match {
-          case Some(newNode) => old.copy(nodes = old.nodes + (nodeId -> newNode))
-          case None => old.copy(nodes = old.nodes - nodeId)
-        }
-      case None =>
-        log.warn(s"Tried to update a non-existing node: $nodeId")
-        old
-    }
-  }
-
-  def updateNode(id: String, nodeId: String)(f: Node => Node) = updateOrDeleteNode(id, nodeId)(f.andThen(Some.apply))
-  def deleteNode(id: String, nodeId: String) = updateOrDeleteNode(id, nodeId)(_ => None)
-
-  def getConn(id: String, tgt: PortRef) = graphs.get(id).flatMap(_.connections.get(tgt))
-
-  def createConn(id: String, tgt: PortRef, conn: InConnection): Future[Unit] = update(id) { old =>
-    old.copy(connections = old.connections + (tgt -> conn))
-  }
-
-  def updateOrDeleteConn(id: String, tgt: PortRef)(f: InConnection => Option[InConnection]) = update(id) { old =>
-    old.connections.get(tgt) match {
-      case Some(conn) =>
-        f(conn) match {
-          case Some(newConn) => old.copy(connections = old.connections + (tgt -> newConn))
-          case None => old.copy(connections = old.connections - tgt)
-        }
-      case None =>
-        log.warn(s"Tried to update a non-existing connection to $tgt")
-        old
-    }
-  }
-
-  def updateConn(id: String, tgt: PortRef)(f: InConnection => InConnection) =
-    updateOrDeleteConn(id, tgt)(f.andThen(Some.apply))
-
-  def deleteConn(id: String, tgt: PortRef) = updateOrDeleteConn(id, tgt)(_ => None)
+  def getConn(id: String, tgt: PortRef) = connLens(id, tgt).getOption(graphs).flatten
+  def createConn(id: String, tgt: PortRef, conn: InConnection) = updateLock { connLens(id, tgt).set(Some(conn)) }
+  def updateConn(id: String, tgt: PortRef)(f: InConnection => InConnection) = updateLock { connLens(id, tgt).modify(_.map(f)) }
+  def deleteConn(id: String, tgt: PortRef) = updateLock { connLens(id, tgt).set(None) }
 }

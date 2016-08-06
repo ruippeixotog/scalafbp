@@ -8,6 +8,8 @@ scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
   "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
+  "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
+  "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
   "com.typesafe"                   % "config"                              % "1.3.0",
   "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
   "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.8",
