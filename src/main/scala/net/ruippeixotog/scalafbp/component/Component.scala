@@ -14,6 +14,16 @@ object PortDataMarshaller {
     val typeName = "all"
     val jsonFormat = implicitly[JsonFormat[JsValue]]
   }
+
+  private[this] def fromNumber[A: JsonFormat] = new PortDataMarshaller[A] {
+    val typeName = "number"
+    val jsonFormat = implicitly[JsonFormat[A]]
+  }
+
+  implicit def fromShort = fromNumber[Short]
+  implicit def fromInt = fromNumber[Int]
+  implicit def fromFloat = fromNumber[Float]
+  implicit def fromDouble = fromNumber[Double]
 }
 
 case class InPort[T](
