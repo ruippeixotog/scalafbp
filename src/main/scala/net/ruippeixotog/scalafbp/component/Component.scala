@@ -1,8 +1,8 @@
 package net.ruippeixotog.scalafbp.component
 
 import akka.actor.Props
-import spray.json.{ JsValue, JsonFormat }
 import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 trait PortDataMarshaller[T] {
   def typeName: String
@@ -20,10 +20,18 @@ object PortDataMarshaller {
     val jsonFormat = implicitly[JsonFormat[A]]
   }
 
-  implicit def fromShort = fromNumber[Short]
-  implicit def fromInt = fromNumber[Int]
-  implicit def fromFloat = fromNumber[Float]
-  implicit def fromDouble = fromNumber[Double]
+  implicit val fromShort = fromNumber[Short]
+  implicit val fromInt = fromNumber[Int]
+  implicit val fromFloat = fromNumber[Float]
+  implicit val fromDouble = fromNumber[Double]
+
+  implicit val fromUnit = new PortDataMarshaller[Unit] {
+    val typeName = "bang"
+    val jsonFormat = new JsonFormat[Unit] {
+      def read(json: JsValue) = ()
+      def write(obj: Unit) = JsTrue
+    }
+  }
 }
 
 case class InPort[T](

@@ -11,7 +11,8 @@ class MapComponentRegistry(map: Map[String, Component]) extends ComponentRegistr
 }
 
 object DefaultComponentRegistry extends MapComponentRegistry(Map(
-  "core/Repeat" -> core.Repeat,
-  "core/Output" -> core.Output,
+  "core/Kick" -> core.Kick,
   "core/Merge" -> core.Merge,
+  "core/Output" -> core.Output,
+  "core/Repeat" -> core.Repeat,
   "core/RunInterval" -> core.RunInterval))
