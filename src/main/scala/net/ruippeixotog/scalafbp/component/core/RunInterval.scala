@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.core
 import scala.concurrent.duration._
 
 import akka.actor._
-import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
@@ -16,7 +15,7 @@ case object RunInterval extends Component {
 
   val inPorts = List(
     InPort[Int]("interval", "Interval at which output packets are emitted (ms)"),
-    InPort[JsValue]("stop", "Stop the emission"))
+    InPort[Unit]("stop", "Stop the emission"))
 
   val outPorts = List(
     OutPort[Unit]("out", "A signal to be sent at the given interval"))
