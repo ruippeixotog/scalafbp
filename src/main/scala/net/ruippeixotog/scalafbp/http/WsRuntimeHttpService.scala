@@ -57,11 +57,11 @@ trait WsRuntimeHttpService extends WsUtils with SLF4JLogging {
   lazy val wsRuntimeRoutes =
     pathEndOrSingleSlash {
       provide(UUID.randomUUID().toString.take(8)) { clientId =>
-        handleWebSocketMessages {
+        handleWebSocketMessagesForProtocol({
           logWsMessages(clientId) {
             fbpRuntimeFlow(clientId)
           }
-        }
+        }, "noflo")
       }
     }
   // format: ON
