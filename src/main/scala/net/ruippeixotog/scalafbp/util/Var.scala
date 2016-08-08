@@ -6,26 +6,22 @@ import scala.collection.generic.CanBuildFrom
 sealed abstract class Var[+A] {
   def get: A
 
-  final def map[B](f: A => B): Var[B] = newDepVar(f(get))
-  final def flatMap[B](f: A => Var[B]): Var[B] = newDepVar(f(get).get)
-  final def flatten[B](implicit ev: A <:< Var[B]): Var[B] = newDepVar(get.get)
+  final def map[B](f: A => B): Var[B] = new DepVar[B, Unit]((), _ => f(get), _ => List(this))
+
+  final def flatMap[B](f: A => Var[B]): Var[B] = new DepVar[B, Var[B]](f(get), _.get, List(this, _))
+
+  final def flatten[B](implicit ev: A <:< Var[B]): Var[B] = new DepVar[B, Var[B]](get, _.get, List(this, _))
 
   final def foreach[U](f: A => U): Unit = {
     dependentActions :+= f
     f(get)
   }
 
-  final def zip[B](v: Var[B]): Var[(A, B)] = newDepVar((get, v.get))
-  final def unzip[A1, A2](implicit ev: A => (A1, A2)): (Var[A1], Var[A2]) = (newDepVar(get._1), newDepVar(get._2))
+  final def zip[B](v: Var[B]): Var[(A, B)] = new DepVar[(A, B), Unit]((), _ => (get, v.get), _ => List(this, v))
+  final def unzip[A1, A2](implicit ev: A => (A1, A2)): (Var[A1], Var[A2]) = (map(_._1), map(_._2))
 
-  protected[this] var dependentVars: Seq[DepVar[_]] = Vector.empty
+  protected[util] var dependentVars: Set[DepVar[_, _]] = Set.empty
   protected[this] var dependentActions: Seq[A => Any] = Vector.empty
-
-  private[this] def newDepVar[B](gen: => B): DepVar[B] = {
-    val v = new DepVar(gen)
-    dependentVars :+= v
-    v
-  }
 }
 
 object Var {
@@ -43,7 +39,7 @@ object Var {
   }
 }
 
-final class Source[A](private[this] var value: A) extends Var[A] {
+final class Source[A] private[util] (private[this] var value: A) extends Var[A] {
   def get = value
 
   def set(a: A): Unit = {
@@ -54,30 +50,38 @@ final class Source[A](private[this] var value: A) extends Var[A] {
   }
 }
 
-final class DepVar[A] private[util] (gen: => A) extends Var[A] {
+final class DepVar[A, I] private[util] (genBase: => I, genVal: I => A, genDeps: I => Seq[Var[_]]) extends Var[A] {
+  private[this] var lastBase = genBase
+  private[this] var lastValue = genVal(lastBase)
+  private[this] var lastDeps = genDeps(lastBase)
+  private[this] var needsUpdate = false
+
+  lastDeps.map(_.dependentVars += this)
 
   def get = {
     if (needsUpdate) {
-      lastValue = gen
+      lastValue = genVal(lastBase)
+      dependentActions.foreach(_(lastValue))
       needsUpdate = false
     }
     lastValue
   }
 
-  private[this] var lastValue = gen
-  private[this] var needsUpdate = false
-
   private[util] def markForUpdate(): Unit = {
     if (!needsUpdate) {
       needsUpdate = true
+      lastBase = genBase
       dependentVars.foreach(_.markForUpdate())
     }
   }
 
   private[util] def onMarkingFinished(): Unit = {
-    if (needsUpdate && dependentActions.nonEmpty) {
-      val value = get
-      dependentActions.foreach(_(value))
+    if (needsUpdate) {
+      lastDeps.map(_.dependentVars -= this)
+      lastDeps = genDeps(lastBase)
+      lastDeps.map(_.dependentVars += this)
+
+      if (dependentActions.nonEmpty) get
     }
     dependentVars.foreach(_.onMarkingFinished())
   }
