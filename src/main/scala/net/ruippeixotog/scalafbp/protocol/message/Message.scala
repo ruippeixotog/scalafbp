@@ -73,6 +73,12 @@ private[protocol] object GraphMessages {
     graph: String,
     secret: String) extends GraphMessage
 
+  case class RenameNode(
+    from: String,
+    to: String,
+    graph: String,
+    secret: String) extends GraphMessage
+
   case class ChangeNode(
     id: String,
     metadata: Map[String, JsValue],

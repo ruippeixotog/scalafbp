@@ -57,6 +57,42 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       }
       delInitials.map(_ => payload)
 
+    case payload: RenameNode => // TODO *really* refactor this
+      val node = graphStore.getNode(payload.graph, payload.from).get
+
+      val renameNode = graphStore.createNode(payload.graph, payload.to, node).flatMap { _ =>
+        graphStore.deleteNode(payload.graph, payload.from)
+      }
+      val renameEdges = renameNode.flatMap { _ =>
+        graphStore.allEdges(payload.graph).foldLeft(Future.successful(())) {
+          case (fut, (src, tgt)) if src.node == payload.from || tgt.node == payload.from =>
+            for {
+              _ <- fut
+              newSrc = if (src.node == payload.from) src.copy(node = payload.to) else src
+              newTgt = if (tgt.node == payload.from) tgt.copy(node = payload.to) else tgt
+              edge = graphStore.getEdge(payload.graph, src, tgt).get
+              _ <- graphStore.createEdge(payload.graph, newSrc, newTgt, edge)
+              _ <- graphStore.deleteEdge(payload.graph, src, tgt)
+            } yield ()
+
+          case (fut, _) => fut
+        }
+      }
+      val renameInitials = renameEdges.flatMap { _ =>
+        graphStore.allInitials(payload.graph).foldLeft(Future.successful(())) {
+          case (fut, tgt) if tgt.node == payload.from =>
+            for {
+              _ <- fut
+              initial = graphStore.getInitial(payload.graph, tgt).get
+              _ <- graphStore.createInitial(payload.graph, tgt.copy(node = payload.to), initial)
+              _ <- graphStore.deleteInitial(payload.graph, tgt)
+            } yield ()
+
+          case (fut, _) => fut
+        }
+      }
+      renameInitials.map(_ => payload)
+
     case payload: ChangeNode => // TODO refactor this
       graphStore.updateNode(payload.graph, payload.id) { node =>
         node.copy(metadata = (node.metadata ++ payload.metadata).filter(_._2 != JsNull))
