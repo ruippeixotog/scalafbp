@@ -38,7 +38,9 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       graphStore.deleteNode(payload.graph, payload.id)
 
     case payload: ChangeNode =>
-      graphStore.updateNode(payload.graph, payload.id)(_.copy(metadata = payload.metadata))
+      graphStore.updateNode(payload.graph, payload.id) { node =>
+        node.copy(metadata = node.metadata ++ payload.metadata)
+      }
 
     case payload: AddEdge =>
       graphStore.createEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef,
@@ -48,8 +50,8 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       graphStore.deleteEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef)
 
     case payload: ChangeEdge =>
-      graphStore.updateEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef) {
-        _.copy(metadata = payload.metadata)
+      graphStore.updateEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef) { edge =>
+        edge.copy(metadata = edge.metadata ++ payload.metadata)
       }
 
     case payload: AddInitial =>
