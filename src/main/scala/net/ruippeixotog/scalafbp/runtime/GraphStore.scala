@@ -31,14 +31,20 @@ class GraphStore(implicit ec: ExecutionContext) extends SLF4JLogging {
   private[this] def initialLens(id: String, tgt: PortRef): Optional[Store, Option[Initial]] =
     graphLensOpt(id) ^|-> GenLens[Graph](_.initials) ^|-> at(tgt)
 
+  def all = graphs.toIterator
   def get(id: String) = graphLens(id).get(graphs)
   def create(id: String, graph: Graph) = updateLock { graphLens(id).set(Some(graph)) }
   def update(id: String)(f: Graph => Graph) = updateLock { graphLens(id).modify(_.map(f)) }
 
+  def allNodes(id: String) = graphLens(id).get(graphs).toIterator.flatMap(_.nodes)
   def getNode(id: String, nodeId: String) = nodeLens(id, nodeId).getOption(graphs).flatten
   def createNode(id: String, nodeId: String, node: Node) = updateLock { nodeLens(id, nodeId).set(Some(node)) }
   def updateNode(id: String, nodeId: String)(f: Node => Node) = updateLock { nodeLens(id, nodeId).modify(_.map(f)) }
   def deleteNode(id: String, nodeId: String) = updateLock { nodeLens(id, nodeId).set(None) }
+
+  def allEdges(id: String) = graphLens(id).get(graphs).toIterator.flatMap(_.edges.flatMap {
+    case (src, tgts) => tgts.keysIterator.map(src -> _)
+  })
 
   def getEdge(id: String, src: PortRef, tgt: PortRef) = edgeLens(id, src, tgt).getOption(graphs).flatten
 
@@ -50,6 +56,8 @@ class GraphStore(implicit ec: ExecutionContext) extends SLF4JLogging {
 
   def deleteEdge(id: String, src: PortRef, tgt: PortRef) =
     updateLock { edgeLens(id, src, tgt).set(None) }
+
+  def allInitials(id: String) = graphLens(id).get(graphs).toIterator.flatMap(_.initials.keysIterator)
 
   def getInitial(id: String, tgt: PortRef) = initialLens(id, tgt).getOption(graphs).flatten
 

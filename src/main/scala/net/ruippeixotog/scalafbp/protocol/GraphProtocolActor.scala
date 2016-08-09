@@ -37,8 +37,25 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
           Future.failed(new NoSuchElementException)
       }
 
-    case payload: RemoveNode =>
-      graphStore.deleteNode(payload.graph, payload.id).map(_ => payload)
+    case payload: RemoveNode => // TODO refactor this
+      val delNode = graphStore.deleteNode(payload.graph, payload.id)
+      val delEdges = delNode.flatMap { _ =>
+        graphStore.allEdges(payload.graph).foldLeft(Future.successful(())) {
+          case (fut, (src, tgt)) if src.node == payload.id || tgt.node == payload.id =>
+            fut.flatMap { _ => graphStore.deleteEdge(payload.graph, src, tgt) }
+
+          case (fut, _) => fut
+        }
+      }
+      val delInitials = delEdges.flatMap { _ =>
+        graphStore.allInitials(payload.graph).foldLeft(Future.successful(())) {
+          case (fut, tgt) if tgt.node == payload.id =>
+            fut.flatMap { _ => graphStore.deleteInitial(payload.graph, tgt) }
+
+          case (fut, _) => fut
+        }
+      }
+      delInitials.map(_ => payload)
 
     case payload: ChangeNode => // TODO refactor this
       graphStore.updateNode(payload.graph, payload.id) { node =>
