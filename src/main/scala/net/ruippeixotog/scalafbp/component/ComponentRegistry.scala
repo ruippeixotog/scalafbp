@@ -16,4 +16,5 @@ object DefaultComponentRegistry extends MapComponentRegistry(Map(
   "core/Merge" -> core.Merge,
   "core/Output" -> core.Output,
   "core/Repeat" -> core.Repeat,
-  "core/RunInterval" -> core.RunInterval))
+  "core/RunInterval" -> core.RunInterval,
+  "math/Add" -> math.Add))
