@@ -6,7 +6,7 @@ import spray.json.JsValue
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component._
 
-object Output extends Component {
+case object Output extends Component {
   val name = "core/Output"
   val description = "Sends the data items to console.log"
   val icon = Some("bug")

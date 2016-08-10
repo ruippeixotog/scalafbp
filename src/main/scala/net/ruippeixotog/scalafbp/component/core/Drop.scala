@@ -5,7 +5,7 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.{ Component, InPort, SimpleComponentActor }
 
-object Drop extends Component {
+case object Drop extends Component {
   val name = "core/Drop"
   val description = "Drops every packet it receives with no action"
   val icon = Some("trash-o")
