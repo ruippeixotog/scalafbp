@@ -1,6 +1,7 @@
 package net.ruippeixotog.scalafbp.protocol
 
 import scala.concurrent.Future
+import scala.util.{ Failure, Success }
 
 import spray.json.JsNull
 
@@ -19,7 +20,10 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
   def returnReply(pf: PartialFunction[GraphMessage, Future[GraphMessage]]): PartialFunction[GraphMessage, Unit] = {
     case msg if pf.isDefinedAt(msg) =>
       val replyTo = sender()
-      pf(msg).foreach(replyTo ! _)
+      pf(msg).onComplete {
+        case Success(reply) => replyTo ! reply
+        case Failure(ex) => log.warn(s"Invalid operation $msg: ${ex.getMessage}")
+      }
   }
 
   def receiveMessage = returnReply {
@@ -29,81 +33,31 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
     case payload: AddNode =>
       compRegistry.get(payload.component) match {
         case Some(comp) =>
-          graphStore.createNode(payload.graph, payload.id, runtime.Node(comp, payload.metadata.getOrElse(Map())))
+          val newNode = runtime.Node(comp, payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
+          graphStore.createNode(payload.graph, payload.id, newNode)
             .map(_ => payload)
 
         case None =>
-          log.warn(s"Unknown component: ${payload.component}")
-          Future.failed(new NoSuchElementException)
+          Future.failed(new NoSuchElementException(s"unknown component ${payload.component}"))
       }
 
-    case payload: RemoveNode => // TODO refactor this
-      val delNode = graphStore.deleteNode(payload.graph, payload.id)
-      val delEdges = delNode.flatMap { _ =>
-        graphStore.allEdges(payload.graph).foldLeft(Future.successful(())) {
-          case (fut, (src, tgt)) if src.node == payload.id || tgt.node == payload.id =>
-            fut.flatMap { _ => graphStore.deleteEdge(payload.graph, src, tgt) }
+    case payload: RemoveNode =>
+      graphStore.deleteNode(payload.graph, payload.id).map(_ => payload)
 
-          case (fut, _) => fut
-        }
-      }
-      val delInitials = delEdges.flatMap { _ =>
-        graphStore.allInitials(payload.graph).foldLeft(Future.successful(())) {
-          case (fut, tgt) if tgt.node == payload.id =>
-            fut.flatMap { _ => graphStore.deleteInitial(payload.graph, tgt) }
+    case payload: RenameNode =>
+      graphStore.renameNode(payload.graph, payload.from, payload.to).map(_ => payload)
 
-          case (fut, _) => fut
-        }
-      }
-      delInitials.map(_ => payload)
-
-    case payload: RenameNode => // TODO *really* refactor this
-      val node = graphStore.getNode(payload.graph, payload.from).get
-
-      val renameNode = graphStore.createNode(payload.graph, payload.to, node).flatMap { _ =>
-        graphStore.deleteNode(payload.graph, payload.from)
-      }
-      val renameEdges = renameNode.flatMap { _ =>
-        graphStore.allEdges(payload.graph).foldLeft(Future.successful(())) {
-          case (fut, (src, tgt)) if src.node == payload.from || tgt.node == payload.from =>
-            for {
-              _ <- fut
-              newSrc = if (src.node == payload.from) src.copy(node = payload.to) else src
-              newTgt = if (tgt.node == payload.from) tgt.copy(node = payload.to) else tgt
-              edge = graphStore.getEdge(payload.graph, src, tgt).get
-              _ <- graphStore.createEdge(payload.graph, newSrc, newTgt, edge)
-              _ <- graphStore.deleteEdge(payload.graph, src, tgt)
-            } yield ()
-
-          case (fut, _) => fut
-        }
-      }
-      val renameInitials = renameEdges.flatMap { _ =>
-        graphStore.allInitials(payload.graph).foldLeft(Future.successful(())) {
-          case (fut, tgt) if tgt.node == payload.from =>
-            for {
-              _ <- fut
-              initial = graphStore.getInitial(payload.graph, tgt).get
-              _ <- graphStore.createInitial(payload.graph, tgt.copy(node = payload.to), initial)
-              _ <- graphStore.deleteInitial(payload.graph, tgt)
-            } yield ()
-
-          case (fut, _) => fut
-        }
-      }
-      renameInitials.map(_ => payload)
-
-    case payload: ChangeNode => // TODO refactor this
+    case payload: ChangeNode =>
       graphStore.updateNode(payload.graph, payload.id) { node =>
         node.copy(metadata = (node.metadata ++ payload.metadata).filter(_._2 != JsNull))
       }.map { _ =>
-        val node = graphStore.getNode(payload.graph, payload.id).get
-        payload.copy(metadata = (node.metadata ++ payload.metadata).filter(_._2 != JsNull))
+        val node = graphStore.getNode(payload.graph, payload.id).get.get
+        payload.copy(metadata = node.metadata)
       }
 
     case payload: AddEdge =>
-      graphStore.createEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef,
-        runtime.Edge(payload.metadata.getOrElse(Map()))).map(_ => payload)
+      val newEdge = runtime.Edge(payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
+      graphStore.createEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef, newEdge).map(_ => payload)
 
     case payload: RemoveEdge =>
       graphStore.deleteEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef).map(_ => payload)
@@ -112,14 +66,13 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       graphStore.updateEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef) { edge =>
         edge.copy(metadata = (edge.metadata ++ payload.metadata).filter(_._2 != JsNull))
       }.map { _ =>
-        val edge = graphStore.getEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef).get
-        payload.copy(metadata = (edge.metadata ++ payload.metadata).filter(_._2 != JsNull))
+        val edge = graphStore.getEdge(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef).flatten.get
+        payload.copy(metadata = edge.metadata)
       }
 
     case payload: AddInitial =>
-      graphStore.createInitial(payload.graph, payload.tgt.toPortRef,
-        runtime.Initial(payload.src.data, payload.metadata.getOrElse(Map())))
-        .map(_ => payload)
+      val newInitial = runtime.Initial(payload.src.data, payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
+      graphStore.createInitial(payload.graph, payload.tgt.toPortRef, newInitial).map(_ => payload)
 
     case payload: RemoveInitial =>
       graphStore.deleteInitial(payload.graph, payload.tgt.toPortRef).map(_ => payload)
