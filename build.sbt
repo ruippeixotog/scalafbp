@@ -20,6 +20,7 @@ libraryDependencies ++= Seq(
   "io.spray"                      %% "spray-json"                          % "1.3.2",
   "org.clapper"                   %% "classutil"                           % "1.0.11",
   "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime",
+  "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"   % "test",
   "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test")
 
 scalariformPreferences := scalariformPreferences.value
