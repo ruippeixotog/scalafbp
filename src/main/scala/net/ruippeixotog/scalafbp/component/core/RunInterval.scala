@@ -9,16 +9,16 @@ import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
 
 case object RunInterval extends Component {
   val name = "core/RunInterval"
-  val description = "Send a packet at the given interval"
+  val description = "Sends a signal periodically"
   val icon = Some("clock-o")
   val isSubgraph = true
 
   val inPorts = List(
-    InPort[Int]("interval", "Interval at which output packets are emitted (ms)"),
+    InPort[Int]("interval", "Interval at which signals are emitted (ms)"),
     InPort[Unit]("stop", "Stop the emission"))
 
   val outPorts = List(
-    OutPort[Unit]("out", "A signal to be sent at the given interval"))
+    OutPort[Unit]("out", "A signal sent at the given interval"))
 
   val instanceProps = Props(new Actor {
     var nextSignalSchedule = Option.empty[Cancellable]
