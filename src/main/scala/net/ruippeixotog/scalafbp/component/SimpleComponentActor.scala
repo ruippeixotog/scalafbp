@@ -1,7 +1,6 @@
 package net.ruippeixotog.scalafbp.component
 
 import akka.actor.Actor
-import akka.actor.Actor.Receive
 import akka.contrib.pattern.ReceivePipeline
 import akka.contrib.pattern.ReceivePipeline.Inner
 
@@ -9,7 +8,7 @@ import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor._
 import net.ruippeixotog.scalafbp.util.Var
 
-abstract class SimpleComponentActor(val component: Component) extends Actor with AutoTerminate
+abstract class SimpleComponentActor[C <: Component](val component: C) extends Actor with AutoTerminate
 
 object SimpleComponentActor {
 
@@ -29,16 +28,18 @@ object SimpleComponentActor {
   trait VarDefinition extends Actor {
     def component: Component
 
-    def mapInputs(in: List[Var[Any]]): List[Var[Any]]
+    private[this] val sourcesMap =
+      component.inPorts.map(_.id -> Var.undefined[Any]()).toMap
 
-    private[this] lazy val sourcesMap = {
-      val sources = component.inPorts.map(_.id -> Var.undefined[Any]())
-      val sinks = mapInputs(sources.map(_._2))
+    implicit class RichInPort[A](inPort: InPort[A]) {
+      def value: Var[A] = sourcesMap(inPort.id).asInstanceOf[Var[A]]
+    }
 
-      component.outPorts.zip(sinks).foreach {
-        case (port, outVar) => outVar.foreach(sender() ! Outgoing(port.id, _))
+    implicit class RichVar[A](v: Var[A]) {
+      def pipeTo(outPort: OutPort[A]): outPort.type = {
+        v.foreach(sender() ! Outgoing(outPort.id, _))
+        outPort
       }
-      sources.toMap
     }
 
     final def receive = {

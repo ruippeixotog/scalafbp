@@ -16,10 +16,10 @@ case class Graph(id: String, nodes: Map[String, Node] = Map.empty) {
 }
 
 case class Node(
-    component: Component,
-    metadata: Map[String, JsValue] = Map.empty,
-    edges: Map[String, Map[PortRef, Edge]] = Map.empty,
-    initials: Map[String, Initial] = Map.empty)
+  component: Component,
+  metadata: Map[String, JsValue] = Map.empty,
+  edges: Map[String, Map[PortRef, Edge]] = Map.empty,
+  initials: Map[String, Initial] = Map.empty)
 
 case class PortRef(node: String, port: String) {
   override def toString = s"$node[$port]"
