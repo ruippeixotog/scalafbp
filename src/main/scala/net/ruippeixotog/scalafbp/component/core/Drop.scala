@@ -10,7 +10,10 @@ case object Drop extends Component {
   val description = "Drops every packet it receives with no action"
   val icon = Some("trash-o")
   val isSubgraph = true
-  val inPorts = List(InPort[JsValue]("in", "Packet to be dropped"))
+
+  val inPorts = List(
+    InPort[JsValue]("in", "Packet to be dropped"))
+
   val outPorts = Nil
 
   val instanceProps = Props(new SimpleComponentActor(this) {

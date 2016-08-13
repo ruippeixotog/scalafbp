@@ -13,8 +13,8 @@ class MapComponentRegistry(map: Map[String, Component]) extends ComponentRegistr
 object DefaultComponentRegistry extends MapComponentRegistry(Map(
   "core/Drop" -> core.Drop,
   "core/Kick" -> core.Kick,
-  "core/Merge" -> core.Merge,
   "core/Output" -> core.Output,
   "core/Repeat" -> core.Repeat,
+  "core/RepeatDelayed" -> core.RepeatDelayed,
   "core/RunInterval" -> core.RunInterval,
   "math/Add" -> math.Add))

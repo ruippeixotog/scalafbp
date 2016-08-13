@@ -11,8 +11,12 @@ case object Output extends Component {
   val description = "Sends the data items to console.log"
   val icon = Some("bug")
   val isSubgraph = false
-  val inPorts = List(InPort[JsValue]("in", "Packet to be printed through console.log"))
-  val outPorts = List(OutPort[JsValue]("out", "Forwarded packet"))
+
+  val inPorts = List(
+    InPort[JsValue]("in", "Packet to be printed through console.log"))
+
+  val outPorts = List(
+    OutPort[JsValue]("out", "Forwarded packet"))
 
   val instanceProps = Props(new SimpleComponentActor(this) {
     def receive = {
