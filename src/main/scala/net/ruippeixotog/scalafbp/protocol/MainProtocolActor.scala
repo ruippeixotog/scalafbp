@@ -2,9 +2,8 @@ package net.ruippeixotog.scalafbp.protocol
 
 import akka.actor._
 
-import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.protocol.message._
-import net.ruippeixotog.scalafbp.runtime.GraphStore
+import net.ruippeixotog.scalafbp.runtime.{ ComponentRegistry, GraphStore }
 
 class MainProtocolActor(runtimeId: String, secret: String, compRegistry: ComponentRegistry, graphStore: GraphStore)
     extends AbstractProtocolActor[Message] {

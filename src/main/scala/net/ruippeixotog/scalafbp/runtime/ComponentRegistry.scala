@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.component
+package net.ruippeixotog.scalafbp.runtime
 
 import java.io.File
 import java.net.URLClassLoader
@@ -8,6 +8,8 @@ import scala.util.Try
 
 import akka.event.slf4j.SLF4JLogging
 import org.clapper.classutil.ClassFinder
+
+import net.ruippeixotog.scalafbp.component.Component
 
 trait ComponentRegistry extends Iterable[Component] {
   def get(id: String): Option[Component]

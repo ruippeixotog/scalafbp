@@ -5,7 +5,6 @@ import scala.util.{ Failure, Success }
 
 import spray.json.JsNull
 
-import net.ruippeixotog.scalafbp.component.ComponentRegistry
 import net.ruippeixotog.scalafbp.protocol.message.FromMessageConversions._
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessage
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._

@@ -6,10 +6,9 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings, Supervision }
 import com.typesafe.config.ConfigFactory
 
-import net.ruippeixotog.scalafbp.component.DefaultComponentRegistry
 import net.ruippeixotog.scalafbp.http.{ RegistrationHttpService, WsRuntimeHttpService }
 import net.ruippeixotog.scalafbp.protocol.MainProtocolActor
-import net.ruippeixotog.scalafbp.runtime.GraphStore
+import net.ruippeixotog.scalafbp.runtime.{ DefaultComponentRegistry, GraphStore }
 
 object WebServer extends App with WsRuntimeHttpService with RegistrationHttpService {
   implicit val system = ActorSystem()
