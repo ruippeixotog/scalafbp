@@ -10,7 +10,7 @@ import net.ruippeixotog.scalafbp.http.{ RegistrationHttpService, WsRuntimeHttpSe
 import net.ruippeixotog.scalafbp.protocol.MainProtocolActor
 import net.ruippeixotog.scalafbp.runtime.{ DefaultComponentRegistry, GraphStore }
 
-object WebServer extends App with WsRuntimeHttpService with RegistrationHttpService {
+object Server extends App with WsRuntimeHttpService with RegistrationHttpService {
   implicit val system = ActorSystem()
   implicit val ec = system.dispatcher
 
