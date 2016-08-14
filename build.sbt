@@ -26,6 +26,17 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"   % "test",
   "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test")
 
+scalariformPreferences := scalariformPreferences.value
+  .setPreference(DanglingCloseParenthesis, Prevent)
+  .setPreference(DoubleIndentClassDeclaration, true)
+  .setPreference(PlaceScaladocAsterisksBeneathSecondAsterisk, true)
+
+fork in Test := true
+
+// -- general packaging settings --
+
+enablePlugins(JavaServerAppPackaging)
+
 val buildUi = TaskKey[Unit]("buildUi")
 
 buildUi := {
@@ -48,15 +59,6 @@ buildUi := {
     case None => throw new NoSuchFileException("src/main/webapp/noflo-<version>.zip was not found")
   }
 }
-
-scalariformPreferences := scalariformPreferences.value
-  .setPreference(DanglingCloseParenthesis, Prevent)
-  .setPreference(DoubleIndentClassDeclaration, true)
-  .setPreference(PlaceScaladocAsterisksBeneathSecondAsterisk, true)
-
-// -- general packaging settings --
-
-enablePlugins(JavaServerAppPackaging)
 
 packageBin in Compile <<= (packageBin in Compile).dependsOn(buildUi)
 
