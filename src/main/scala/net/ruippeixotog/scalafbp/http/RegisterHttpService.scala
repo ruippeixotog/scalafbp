@@ -36,7 +36,7 @@ trait RegisterHttpService {
   private[this] lazy val registryClient = new RegistryClient(baseUrl)
 
   private[this] lazy val runtimeInfo = registry.Runtime(
-    "scalafbp", "websocket", s"ws://$host:$port", runtimeId, "Scala FBP Runtime", port, userId, secret)
+    "scalafbp", "websocket", s"ws://$host:$port", runtimeId, "ScalaFBP Runtime", port, userId, secret)
 
   private[this] def handleRegistryResponse(successMsg: String, errorMsg: String => String)(res: HttpResponse) =
     res match {

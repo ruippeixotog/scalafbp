@@ -19,7 +19,7 @@ class RuntimeProtocolActor(runtimeId: String) extends AbstractProtocolActor[Runt
         capabilities = capabilities,
         allCapabilities = capabilities,
         id = Some(runtimeId),
-        label = Some("Scala FBP Runtime"),
+        label = Some("ScalaFBP Runtime"),
         graph = None)
   }
 }
