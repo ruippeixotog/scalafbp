@@ -1,3 +1,5 @@
+import java.nio.file.NoSuchFileException
+
 import scalariform.formatter.preferences._
 
 name := "scalafbp"
@@ -27,12 +29,22 @@ libraryDependencies ++= Seq(
 TaskKey[Unit]("buildUi") := {
   val env = Seq(
     "NOFLO_REGISTRY_SERVICE" -> "/registry",
+    "NOFLO_APP_NAME" -> "ScalaFBP UI",
     "NOFLO_APP_TITLE" -> "ScalaFBP Development Environment",
-    "NOFLO_OFFLINE_MODE" -> "true")
+    "NOFLO_OFFLINE_MODE" -> "true",
+    "NOFLO_APP_ANALYTICS" -> "")
 
   Process("npm install", file("src/main/webapp")).!
   Process("grunt build", file("src/main/webapp"), env: _*).!
-  IO.unzip(file("src/main/webapp/noflo-0.12.2.zip"), file("src/main/resources/ui"))
+
+  IO.listFiles(file("src/main/resources/ui")).foreach { file =>
+    if(file.getName != ".gitignore") IO.delete(file)
+  }
+
+  IO.listFiles(file("src/main/webapp")).find(_.getName.matches("^noflo-.*\\.zip$")) match {
+    case Some(zipFile) => IO.unzip(zipFile, file("src/main/resources/ui"))
+    case None => throw new NoSuchFileException("src/main/webapp/noflo-<version>.zip was not found")
+  }
 }
 
 scalariformPreferences := scalariformPreferences.value
