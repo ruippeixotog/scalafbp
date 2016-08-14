@@ -24,6 +24,17 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"   % "test",
   "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test")
 
+TaskKey[Unit]("buildUi") := {
+  val env = Seq(
+    "NOFLO_REGISTRY_SERVICE" -> "/registry",
+    "NOFLO_APP_TITLE" -> "ScalaFBP Development Environment",
+    "NOFLO_OFFLINE_MODE" -> "true")
+
+  Process("npm install", file("src/main/webapp")).!
+  Process("grunt build", file("src/main/webapp"), env: _*).!
+  IO.unzip(file("src/main/webapp/noflo-0.12.2.zip"), file("src/main/resources/ui"))
+}
+
 scalariformPreferences := scalariformPreferences.value
   .setPreference(DanglingCloseParenthesis, Prevent)
   .setPreference(DoubleIndentClassDeclaration, true)
