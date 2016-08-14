@@ -6,11 +6,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings, Supervision }
 import com.typesafe.config.ConfigFactory
 
-import net.ruippeixotog.scalafbp.http.{ RegistrationHttpService, WsRuntimeHttpService }
+import net.ruippeixotog.scalafbp.http.{ RegisterHttpService, RegistryHttpService, WsRuntimeHttpService }
 import net.ruippeixotog.scalafbp.protocol.MainProtocolActor
 import net.ruippeixotog.scalafbp.runtime.{ DefaultComponentRegistry, GraphStore }
 
-object Server extends App with WsRuntimeHttpService with RegistrationHttpService {
+object Server extends App with WsRuntimeHttpService with RegisterHttpService with RegistryHttpService {
   implicit val system = ActorSystem()
   implicit val ec = system.dispatcher
 
@@ -42,9 +42,10 @@ object Server extends App with WsRuntimeHttpService with RegistrationHttpService
   val protocolActor = system.actorOf(Props(new MainProtocolActor(runtimeId, secret, compRegistry, graphStore)))
 
   // all the routes offered by this server
-  val routes = registrationRoutes ~ wsRuntimeRoutes
+  val routes = registrationRoutes ~ registryRoutes ~ wsRuntimeRoutes
 
   Http().bindAndHandle(routes, host, port).foreach { binding =>
     log.info(s"Bound to ${binding.localAddress}")
+    onBind(binding)
   }
 }

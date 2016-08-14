@@ -7,6 +7,7 @@ version := "0.1.0-SNAPSHOT"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
+  "ch.megard"                     %% "akka-http-cors"                      % "0.1.4",
   "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
   "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
   "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
