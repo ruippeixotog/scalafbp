@@ -26,7 +26,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"   % "test",
   "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test")
 
-TaskKey[Unit]("buildUi") := {
+val buildUi = TaskKey[Unit]("buildUi")
+
+buildUi := {
   val env = Seq(
     "NOFLO_REGISTRY_SERVICE" -> "/registry",
     "NOFLO_APP_NAME" -> "ScalaFBP UI",
@@ -51,3 +53,20 @@ scalariformPreferences := scalariformPreferences.value
   .setPreference(DanglingCloseParenthesis, Prevent)
   .setPreference(DoubleIndentClassDeclaration, true)
   .setPreference(PlaceScaladocAsterisksBeneathSecondAsterisk, true)
+
+// -- general packaging settings --
+
+enablePlugins(JavaServerAppPackaging)
+
+packageBin in Compile <<= (packageBin in Compile).dependsOn(buildUi)
+
+val excludedResources = Seq("application.conf")
+mappings in (Compile, packageBin) ~= { _.filterNot {
+  case (_, resName) => excludedResources.contains(resName)
+}}
+
+// -- Docker packaging settings --
+
+maintainer in Docker := "Rui Gonçalves <ruippeixotog@gmail.com>"
+dockerExposedPorts in Docker := Seq(3569)
+dockerRepository := Some("ruippeixotog")
