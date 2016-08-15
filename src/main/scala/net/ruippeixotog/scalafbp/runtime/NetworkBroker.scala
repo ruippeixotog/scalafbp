@@ -26,7 +26,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
   // the initial routing table mapping outgoing ports to a list of destination ports to which packets should be sent
   val initialRoutes: Map[PortRef, Iterable[PortRef]] =
-    graph.edges.mapValues(_.keys).withDefaultValue(Set.empty)
+    graph.edges.mapValues(_.keys)
 
   // a map containing the initial number of inwards edges of each inPort
   val initialInEdgesCount: Map[PortRef, Int] =
@@ -101,7 +101,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
 
-        routes(src).foreach { tgt =>
+        routes.getOrElse(src, Set.empty).foreach { tgt =>
           val jsDataOpt = serialize(src, srcData)
           val tgtDataOpt = jsDataOpt.flatMap(deserialize(tgt, _))
 
@@ -128,7 +128,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
 
-        val newInEdgesCount = routes(src).foldLeft(inEdgesCount) { (acc, tgt) =>
+        val newInEdgesCount = routes.getOrElse(src, Set.empty).foldLeft(inEdgesCount) { (acc, tgt) =>
           outputActor ! Disconnect(graph.id, Some(src), tgt)
 
           if (acc(tgt) > 1) {
@@ -148,11 +148,13 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
         val tgt = PortRef(tgtNode, tgtPort)
 
         // disconnect and remove from the table every route that targeted the disconnected port
+        var hadDisconnectedRoutes = false
         val newRoutes = routes.map {
           case (src, tgts) =>
             val (disconnectedTargets, newTargets) = tgts.partition(_ == tgt)
             if (disconnectedTargets.nonEmpty) {
               outputActor ! Disconnect(graph.id, Some(src), tgt)
+              hadDisconnectedRoutes = true
             }
             src -> newTargets
         }
@@ -160,8 +162,11 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
         // remove the disconnected target from the inEdgesCount map
         val newInEdgesCount = inEdgesCount - tgt
 
-        // send an `InPortDisconnected` (to the same actor that sent the disconnection) acknowledging the operation
-        nodeActors(tgtNode) ! InPortDisconnected(tgtPort)
+        // send an `InPortDisconnected` (to the same actor that sent the disconnection) acknowledging the operation.
+        // Do this only if an actual route was disconnected; if not, the port may have been already disconnected after
+        // an initial value.
+        if (hadDisconnectedRoutes)
+          nodeActors(tgtNode) ! InPortDisconnected(tgtPort)
 
         log.info(s"Target port $tgt disconnected")
         context.become(brokerBehavior(activeNodes, newRoutes, newInEdgesCount))
