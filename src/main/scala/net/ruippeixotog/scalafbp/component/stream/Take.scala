@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, VarDefinition }
 import net.ruippeixotog.scalafbp.component._
 

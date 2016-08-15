@@ -17,12 +17,12 @@ object SimpleComponentActor {
   trait AutoTerminate extends ReceivePipeline { this: Actor =>
     def component: Component
 
-    private[this] var openInPorts = component.inPorts.length
+    private[this] var openInPorts = component.inPorts.map(_.id).toSet
 
     pipelineInner {
       case msg @ InPortDisconnected(port) =>
-        openInPorts -= 1
-        if (openInPorts == 0) context.stop(self)
+        openInPorts -= port
+        if (openInPorts.isEmpty) context.stop(self)
         Inner(msg)
     }
   }

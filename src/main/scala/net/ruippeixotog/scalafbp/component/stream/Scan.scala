@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor.{ DisconnectInPort, InPortDisconnected }
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, VarDefinition }
 import net.ruippeixotog.scalafbp.component._
 import net.ruippeixotog.scalafbp.util.NashornEngine
