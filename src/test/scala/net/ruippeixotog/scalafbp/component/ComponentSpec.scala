@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.component
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 
-import akka.actor.ActorSystem
+import akka.actor._
 import akka.testkit.{ TestKit, TestProbe }
 import org.specs2.execute.AsResult
 import org.specs2.matcher.Matcher
@@ -25,44 +25,52 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
   trait ComponentInstance extends Scope {
     val componentActor = system.actorOf(component.instanceProps)
 
-    val brokerProbe = TestProbe()
-    brokerProbe.watch(componentActor)
+    private[this] val outPortProbes = component.outPorts.map(_.id -> TestProbe()).toMap
+    private[this] val componentWatcherProbe = TestProbe()
+    componentWatcherProbe.watch(componentActor)
+
+    private[this] val forwarder = system.actorOf(Props(new Actor {
+      def receive = {
+        case msg @ Outgoing(port, _) => outPortProbes(port).ref.forward(msg)
+        case msg @ DisconnectOutPort(port) => outPortProbes(port).ref.forward(msg)
+      }
+    }))
 
     implicit class RichInPort[A](inPort: InPort[A]) {
-      def send(data: A): Unit = brokerProbe.send(componentActor, Incoming(inPort.id, data))
-      def close(): Unit = brokerProbe.send(componentActor, InPortDisconnected(inPort.id))
+      def send(data: A): Unit = componentActor.tell(Incoming(inPort.id, data), forwarder)
+      def close(): Unit = componentActor.tell(InPortDisconnected(inPort.id), forwarder)
     }
 
     def receive[A](data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsg(Outgoing(outPort.id, data)) must not(throwAn[Exception])
+      outPortProbes(outPort.id).expectMsg(Outgoing(outPort.id, data)) must not(throwAn[Exception])
     }
 
     def receive[A](max: FiniteDuration, data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsg(max, Outgoing(outPort.id, data)) must not(throwAn[Exception])
+      outPortProbes(outPort.id).expectMsg(max, Outgoing(outPort.id, data)) must not(throwAn[Exception])
     }
 
     def receiveLike[A, R: AsResult](f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsgPF() {
+      outPortProbes(outPort.id).expectMsgPF() {
         case Outgoing(outPort.id, data: A @unchecked) if f.isDefinedAt(data) => f(data)
       } must not(throwAn[Exception])
     }
 
     def receiveLike[A, R: AsResult](max: FiniteDuration)(f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsgPF(max) {
+      outPortProbes(outPort.id).expectMsgPF(max) {
         case Outgoing(outPort.id, data: A @unchecked) if f.isDefinedAt(data) => f(data)
       } must not(throwAn[Exception])
     }
 
     def beClosed[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsg(DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
+      outPortProbes(outPort.id).expectMsg(DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
     }
 
     def beClosed[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      brokerProbe.expectMsg(max, DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
+      outPortProbes(outPort.id).expectMsg(max, DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
     }
 
     def terminate(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
-      instance.brokerProbe.expectTerminated(instance.componentActor) must not(throwAn[Exception])
+      componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
     }
   }
 }
