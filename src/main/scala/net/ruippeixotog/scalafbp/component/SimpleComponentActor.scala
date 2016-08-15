@@ -53,34 +53,57 @@ object SimpleComponentActor {
     def receive: Receive = Actor.emptyBehavior
   }
 
-  trait PortFreezing extends Actor with ReceivePipeline {
-    private[this] var frozenPorts = Map[String, Option[Queue[(Any, ActorRef)]]]()
+  trait PortFlowControl extends Actor with ReceivePipeline {
+
+    private[this] sealed trait Action
+    private[this] case object Ignore extends Action
+    private[this] case object IgnoreIncoming extends Action
+    private[this] case class Freeze(stash: Queue[(Any, ActorRef)]) extends Action
+    private[this] case object RequireFirst extends Action
+
+    private[this] var portState = Map[String, Action]()
 
     implicit class FreezableInPort[A](inPort: InPort[A]) {
-      def isFrozen = frozenPorts.get(inPort.id).exists(_.isDefined)
+      def isFrozen = portState.get(inPort.id).exists(_.isInstanceOf[Freeze])
+      def freeze() = portState += (inPort.id -> Freeze(Queue.empty))
 
-      def freeze() = frozenPorts += (inPort.id -> Some(Queue.empty))
+      def unfreeze() = portState.get(inPort.id) match {
+        case Some(Freeze(stash)) =>
+          stash.foreach((self.tell _).tupled)
+          portState -= inPort.id
 
-      def unfreeze() = frozenPorts.get(inPort.id).flatten.foreach { queue =>
-        queue.foreach((self.tell _).tupled)
-        frozenPorts -= inPort.id
+        case _ => // do nothing
       }
 
-      def isIgnored = frozenPorts.get(inPort.id).contains(None)
+      def isIgnored = portState.get(inPort.id).contains(Ignore)
+      def ignore() = portState += (inPort.id -> Ignore)
 
-      def ignore() = frozenPorts += (inPort.id -> None)
-
-      def unignore() = frozenPorts.get(inPort.id).foreach {
-        case None => frozenPorts -= inPort.id
-        case _ => // nothing to do here
+      def unignore() = portState.get(inPort.id) match {
+        case Some(Ignore) => portState -= inPort.id
+        case _ => // do nothing
       }
+
+      def isFirstRequired = portState.get(inPort.id).contains(RequireFirst)
+      def requireFirst() = portState += (inPort.id -> RequireFirst)
     }
 
-    private[this] def handleMessage(msg: Any, port: String) = frozenPorts.get(port) match {
+    private[this] def handleMessage(msg: Any, port: String) = portState.get(port) match {
       case None => Inner(msg)
-      case Some(None) => HandledCompletely
-      case Some(Some(queue)) =>
-        frozenPorts += (port -> Some(queue.enqueue(msg, sender())))
+      case Some(Ignore) => HandledCompletely
+      case Some(IgnoreIncoming) if msg.isInstanceOf[Incoming] => HandledCompletely
+      case Some(IgnoreIncoming) => Inner(msg)
+
+      case Some(Freeze(stash)) =>
+        portState += (port -> Freeze(stash.enqueue(msg, sender())))
+        HandledCompletely
+
+      case Some(RequireFirst) if msg.isInstanceOf[Incoming] =>
+        portState += (port -> IgnoreIncoming)
+        sender() ! DisconnectInPort(port)
+        Inner(msg)
+
+      case Some(RequireFirst) =>
+        context.stop(self) // port was disconnected without receiving any Incoming message
         HandledCompletely
     }
 

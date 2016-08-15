@@ -54,6 +54,16 @@ class ScanSpec extends ComponentSpec with AutoTerminateSpec {
       this must terminate()
     }
 
+    "terminate when all ports are closed after some messages are received" in new ComponentInstance {
+      Scan.initialPort.send(JsNumber(0))
+      Scan.funcPort.send("return acc + x")
+      Scan.inPort.send(JsNumber(3))
+      Scan.initialPort.close()
+      Scan.funcPort.close()
+      Scan.inPort.close()
+      this must terminate()
+    }
+
     terminateItselfWhenAllInPortsAreClosed
   }
 }

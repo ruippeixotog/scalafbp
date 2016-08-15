@@ -46,6 +46,14 @@ class TakeSpec extends ComponentSpec with AutoTerminateSpec {
       this must terminate()
     }
 
+    "terminate when all ports are closed after some messages are received" in new ComponentInstance {
+      Take.nPort.send(3)
+      Take.inPort.send(JsNumber(3))
+      Take.nPort.close()
+      Take.inPort.close()
+      this must terminate()
+    }
+
     terminateItselfWhenAllInPortsAreClosed
   }
 }

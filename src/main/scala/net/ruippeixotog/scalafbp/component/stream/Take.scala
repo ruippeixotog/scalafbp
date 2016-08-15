@@ -4,7 +4,7 @@ import akka.actor.Props
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFreezing, VarDefinition }
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, VarDefinition }
 import net.ruippeixotog.scalafbp.component._
 
 case object Take extends Component {
@@ -20,20 +20,16 @@ case object Take extends Component {
   val outPort = OutPort[JsValue]("out", "The taken elements")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with PortFreezing {
+  val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with PortFlowControl {
+    nPort.requireFirst()
     inPort.freeze()
 
     nPort.value.foreach { n =>
-      nPort.ignore()
       inPort.unfreeze()
       inPort.value.pipeTo(outPort)
       inPort.value
         .scan(n) { (left, _) => left - 1 }
         .foreach { left => if (left == 0) context.stop(self) }
-    }
-
-    override def receive = {
-      case InPortDisconnected("n") if !nPort.isIgnored => context.stop(self)
     }
   })
 }
