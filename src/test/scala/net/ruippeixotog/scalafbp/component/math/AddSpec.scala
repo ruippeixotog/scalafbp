@@ -5,7 +5,7 @@ import net.ruippeixotog.scalafbp.component.{ AutoTerminateSpec, ComponentSpec }
 class AddSpec extends ComponentSpec with AutoTerminateSpec {
   val component = Add
 
-  "A Drop component" should {
+  "An Add component" should {
 
     "not output anything until the augend is known" in new ComponentInstance {
       Add.inPorts("addend").send(3.0)
