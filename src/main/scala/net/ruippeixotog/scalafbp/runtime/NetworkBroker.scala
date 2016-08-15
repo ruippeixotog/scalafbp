@@ -139,8 +139,32 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
           }
         }
 
-        log.info(s"Port $src disconnected")
+        log.info(s"Source port $src disconnected")
         context.become(brokerBehavior(activeNodes, routes - src, newInEdgesCount))
+      }
+
+    case msg @ DisconnectInPort(tgtPort) =>
+      withKnownSender(msg) { tgtNode =>
+        val tgt = PortRef(tgtNode, tgtPort)
+
+        // disconnect and remove from the table every route that targeted the disconnected port
+        val newRoutes = routes.map {
+          case (src, tgts) =>
+            val (disconnectedTargets, newTargets) = tgts.partition(_ == tgt)
+            if (disconnectedTargets.nonEmpty) {
+              outputActor ! Disconnect(graph.id, Some(src), tgt)
+            }
+            src -> newTargets
+        }
+
+        // remove the disconnected target from the inEdgesCount map
+        val newInEdgesCount = inEdgesCount - tgt
+
+        // send an `InPortDisconnected` (to the same actor that sent the disconnection) acknowledging the operation
+        nodeActors(tgtNode) ! InPortDisconnected(tgtPort)
+
+        log.info(s"Target port $tgt disconnected")
+        context.become(brokerBehavior(activeNodes, newRoutes, newInEdgesCount))
       }
 
     case Terminated(ref) =>
