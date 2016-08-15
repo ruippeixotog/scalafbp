@@ -15,6 +15,12 @@ sealed abstract class Var[+A] {
   final def flatten[B](implicit ev: Option[A] <:< Option[Var[B]]): Var[B] =
     new DepVar[B, Option[Var[B]]](get, _.flatMap(_.get), List(this) ++ _)
 
+  final def scan[B](z: B)(op: (B, A) => B): Var[B] = {
+    var curr = z
+    val genVal = () => { curr = get.fold(z)(op(curr, _)); Some(curr) }
+    new DepVar[B, Unit]((), _ => genVal(), _ => List(this))
+  }
+
   final def foreach[U](f: A => U): Unit = {
     dependentActions :+= f
     get.foreach(f)

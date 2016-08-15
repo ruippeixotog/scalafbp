@@ -69,6 +69,21 @@ class VarSpec extends Specification {
       sum.get must beSome(110)
     }
 
+    "have a correct scan method" in {
+      val x = Var.undefined[Int]()
+      val xSum = x.scan(0)(_ + _)
+      xSum.get must beSome(0)
+
+      x.set(2)
+      xSum.get must beSome(2)
+      x.set(10)
+      xSum.get must beSome(12)
+
+      val y = Var(3)
+      val ySum = y.scan(0)(_ + _)
+      ySum.get must beSome(3)
+    }
+
     "have a correct foreach method" in {
       val x = Var("aaa")
       val y = x.map(_.length)
