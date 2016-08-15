@@ -15,6 +15,9 @@ sealed abstract class Var[+A] {
   final def flatten[B](implicit ev: Option[A] <:< Option[Var[B]]): Var[B] =
     new DepVar[B, Option[Var[B]]](get, _.flatMap(_.get), List(this) ++ _)
 
+  final def orElse[B >: A](v: Var[B]): Var[B] =
+    new DepVar[B, Option[B]](get, _.orElse(v.get), { x => if (x.isEmpty) List(this, v) else List(this) })
+
   final def scan[B](z: B)(op: (B, A) => B): Var[B] = {
     var curr = z
     val genVal = () => { curr = get.fold(z)(op(curr, _)); Some(curr) }

@@ -69,6 +69,23 @@ class VarSpec extends Specification {
       sum.get must beSome(110)
     }
 
+    "have a correct orElse method" in {
+      val x = Var.undefined[Int]()
+      val y = Var.undefined[Int]()
+
+      val xOrY = x.orElse(y)
+      xOrY.get must beNone
+
+      y.set(2)
+      xOrY.get must beSome(2)
+
+      x.set(10)
+      xOrY.get must beSome(10)
+
+      y.set(100)
+      xOrY.get must beSome(10)
+    }
+
     "have a correct scan method" in {
       val x = Var.undefined[Int]()
       val xSum = x.scan(0)(_ + _)
