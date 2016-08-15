@@ -12,16 +12,16 @@ class ConcatSpec extends ComponentSpec with AutoTerminateSpec {
     "not output anything until the first stream sends packets" in new ComponentInstance {
       Concat.in2Port.send(JsTrue)
       Concat.in2Port.send(JsNumber(3.0))
-      Concat.outPort must not(receiveLike { case _ => ok })
+      Concat.outPort must receiveNothing
       Concat.in2Port.close()
-      Concat.outPort must not(receiveLike { case _ => ok })
+      Concat.outPort must receiveNothing
     }
 
     "Send immediatly the packets from the first stream" in new ComponentInstance {
       Concat.in1Port.send(JsTrue)
       Concat.in2Port.send(JsNumber(3.0))
       Concat.outPort must receive(JsTrue)
-      Concat.outPort must not(receiveLike { case _ => ok })
+      Concat.outPort must receiveNothing
     }
 
     "Send the packets from the second stream after the first one is closed" in new ComponentInstance {
@@ -29,7 +29,7 @@ class ConcatSpec extends ComponentSpec with AutoTerminateSpec {
       Concat.in2Port.send(JsNumber(3))
       Concat.in2Port.send(JsNumber(6))
       Concat.outPort must receive(JsTrue)
-      Concat.outPort must not(receiveLike { case _ => ok })
+      Concat.outPort must receiveNothing
 
       Concat.in1Port.close()
       Concat.outPort must receive(JsNumber(3))
@@ -41,7 +41,7 @@ class ConcatSpec extends ComponentSpec with AutoTerminateSpec {
       Concat.in2Port.send(JsNumber(3))
       Concat.in2Port.close()
       Concat.outPort must receive(JsTrue)
-      Concat.outPort must not(receiveLike { case _ => ok })
+      Concat.outPort must receiveNothing
 
       Concat.in1Port.close()
       Concat.outPort must receive(JsNumber(3))

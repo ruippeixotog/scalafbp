@@ -12,13 +12,13 @@ class ScanSpec extends ComponentSpec with AutoTerminateSpec {
     "not output anything until the initial value is known" in new ComponentInstance {
       Scan.funcPort.send("return acc + 1")
       Scan.inPort.send(JsNumber(3))
-      Scan.outPort must not(receiveLike { case _ => ok })
+      Scan.outPort must receiveNothing
     }
 
     "not output anything until the function is known" in new ComponentInstance {
       Scan.initialPort.send(JsNumber(0))
       Scan.inPort.send(JsNumber(3))
-      Scan.outPort must not(receiveLike { case _ => ok })
+      Scan.outPort must receiveNothing
     }
 
     "output the initial value first when both all inputs are known" in new ComponentInstance {

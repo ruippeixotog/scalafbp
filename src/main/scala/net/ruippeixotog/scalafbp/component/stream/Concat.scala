@@ -9,7 +9,7 @@ import net.ruippeixotog.scalafbp.component._
 
 case object Concat extends Component {
   val name = "stream/Concat"
-  val description = "Sends all packets of a stream followed by all elements of another"
+  val description = "Emits all packets of a stream followed by all elements of another"
   val icon = Some("compress")
   val isSubgraph = true
 

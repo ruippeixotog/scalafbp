@@ -11,7 +11,7 @@ class MakeFunctionSpec extends ComponentSpec with AutoTerminateSpec {
 
     "not output anything until the function is known" in new ComponentInstance {
       MakeFunction.inPort.send(JsNumber(3.0))
-      MakeFunction.outPort must not(receiveLike { case _ => ok })
+      MakeFunction.outPort must receiveNothing
     }
 
     "correctly compile a function and run against inputs" in new ComponentInstance {

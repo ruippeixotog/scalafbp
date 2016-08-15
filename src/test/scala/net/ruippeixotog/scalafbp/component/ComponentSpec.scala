@@ -61,6 +61,14 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       } must not(throwAn[Exception])
     }
 
+    def receiveNothing[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id).expectNoMsg() must not(throwAn[Exception])
+    }
+
+    def receiveNothing[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id).expectNoMsg(max) must not(throwAn[Exception])
+    }
+
     def beClosed[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
       outPortProbes(outPort.id).expectMsg(DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
     }
