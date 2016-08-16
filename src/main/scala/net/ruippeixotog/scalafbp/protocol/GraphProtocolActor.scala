@@ -21,7 +21,9 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
       val replyTo = sender()
       pf(msg).onComplete {
         case Success(reply) => replyTo ! reply
-        case Failure(ex) => log.warn(s"Invalid operation $msg: ${ex.getMessage}")
+        case Failure(ex) =>
+          log.warn(s"Invalid operation $msg: ${ex.getMessage}")
+          replyTo ! Error(ex.getMessage)
       }
   }
 
@@ -37,7 +39,7 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: GraphStore
             .map(_ => payload)
 
         case None =>
-          Future.failed(new NoSuchElementException(s"unknown component ${payload.component}"))
+          Future.failed(new NoSuchElementException(s"Unknown component ${payload.component}"))
       }
 
     case payload: RemoveNode =>

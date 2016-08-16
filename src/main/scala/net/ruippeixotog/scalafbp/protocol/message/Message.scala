@@ -44,6 +44,9 @@ private[protocol] object RuntimeMessages {
     payload: Option[String],
     graph: String,
     secret: String) extends RuntimeMessage
+
+  case class Error(
+    message: String) extends RuntimeMessage
 }
 
 private[protocol] sealed trait GraphMessage extends Message {
@@ -139,6 +142,9 @@ private[protocol] object GraphMessages {
     metadata: Option[Map[String, JsValue]],
     graph: String,
     secret: String) extends GraphMessage
+
+  case class Error(
+    message: String) extends GraphMessage
 }
 
 private[protocol] sealed trait ComponentMessage extends Message {
@@ -176,6 +182,9 @@ private[protocol] object ComponentMessages {
 
   case class ComponentsReady(
     _value: Int) extends ComponentMessage
+
+  case class Error(
+    message: String) extends ComponentMessage
 }
 
 private[protocol] sealed trait NetworkMessage extends Message {

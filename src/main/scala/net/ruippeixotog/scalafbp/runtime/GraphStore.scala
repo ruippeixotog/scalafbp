@@ -19,7 +19,7 @@ class GraphStore(implicit ec: ExecutionContext) extends SLF4JLogging {
     synchronized { // TODO improve this later to a better locking method
       f(graphs) match {
         case Some(newGraphs) => Future.successful(graphs = newGraphs)
-        case None => Future.failed(new NoSuchElementException("unknown graph or node"))
+        case None => Future.failed(new NoSuchElementException("Unknown graph or node"))
       }
     }
   }
