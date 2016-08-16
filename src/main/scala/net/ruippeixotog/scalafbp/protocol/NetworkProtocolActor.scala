@@ -52,8 +52,9 @@ class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor
     case payload: Start =>
       graphStore.get(payload.graph) match {
         case Some(graph) =>
+          val messageOutputActor = sender()
           val outputActor = proxyActorCache.getOrElseUpdate(
-            sender(), context.actorOf(Props(new OutputProxyActor(sender()))))
+            messageOutputActor, context.actorOf(Props(new OutputProxyActor(messageOutputActor))))
 
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Start(graph, outputActor)
