@@ -12,7 +12,7 @@ trait PortDataMarshaller[T] {
   def jsonFormat: JsonFormat[T]
 }
 
-object PortDataMarshaller {
+object PortDataMarshaller extends LowPriorityImplicits {
 
   def forType[A](tName: String)(implicit jf: JsonFormat[A]) = new PortDataMarshaller[A] {
     val typeName = tName
@@ -51,6 +51,9 @@ object PortDataMarshaller {
       case x => x
     }
   })
+}
+
+trait LowPriorityImplicits { this: PortDataMarshaller.type =>
 
   // By default, tell clients the field is an "object". This won't work for any type serialized as anything other than
   // a JsObject. This can be overriden for any Scala type by providing a `PortDataMarshaller` instance for it.
