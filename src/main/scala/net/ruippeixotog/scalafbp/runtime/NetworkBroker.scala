@@ -54,7 +54,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       case (tgt, Initial(jsData, _)) =>
         deserialize(tgt, jsData) match {
           case Some(tgtData) =>
-            log.info(s"DATA -> $tgt: $tgtData")
+            log.debug(s"DATA -> $tgt: $tgtData")
             nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
             outputActor ! Connect(graph.id, None, tgt)
             outputActor ! Data(graph.id, None, tgt, jsData)
@@ -107,7 +107,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
           (jsDataOpt, tgtDataOpt) match {
             case (Some(jsData), Some(tgtData)) =>
-              log.info(s"$src -> $tgt: $tgtData${if (srcData == tgtData) "" else s" ($srcData)"}")
+              log.debug(s"$src -> $tgt: $tgtData${if (srcData == tgtData) "" else s" ($srcData)"}")
               nodeActors(tgt.node) ! Incoming(tgt.port, tgtData)
               outputActor ! Data(graph.id, Some(src), tgt, jsData)
 

@@ -3,7 +3,7 @@ package net.ruippeixotog.scalafbp.protocol
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-import akka.actor.{ Actor, ActorRef, Props }
+import akka.actor._
 import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
 
@@ -18,11 +18,15 @@ class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor
   implicit val ec = context.dispatcher
 
   private[this] class OutputProxyActor(val inner: ActorRef) extends Actor {
+    context.watch(inner)
+
     def receive = {
       case output: ComponentActor.Output => inner ! output.toMessage
       case error: NetworkBroker.Error => inner ! error.toMessage
       case activity: NetworkBroker.Activity => inner ! activity.toMessage
       case finished: NetworkController.Finished => inner ! finished.toMessage
+
+      case Terminated(`inner`) => context.stop(self)
       case msg => log.warn(s"Cannot proxy unexpected message $msg to client")
     }
   }
@@ -54,7 +58,8 @@ class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor
         case Some(graph) =>
           val messageOutputActor = sender()
           val outputActor = proxyActorCache.getOrElseUpdate(
-            messageOutputActor, context.actorOf(Props(new OutputProxyActor(messageOutputActor))))
+            messageOutputActor,
+            context.actorOf(Props(new OutputProxyActor(messageOutputActor)), "output-proxy"))
 
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Start(graph, outputActor)
