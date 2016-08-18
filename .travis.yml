@@ -3,10 +3,19 @@ scala:
   - 2.11.8
 jdk:
   - oraclejdk8
+services:
+  - docker
+before_install:
+  - nvm install 6
+  - npm install -g grunt
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean coverage test
 after_success:
   - sbt ++$TRAVIS_SCALA_VERSION coverageReport coveralls
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+      docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+      sbt ++$TRAVIS_SCALA_VERSION docker:publish;
+      fi
 cache:
   directories:
     - $HOME/.ivy2/cache
