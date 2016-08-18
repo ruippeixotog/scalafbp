@@ -41,6 +41,9 @@ val buildUi = TaskKey[Unit]("buildUi")
 
 buildUi := {
   val env = Seq(
+    "NOFLO_OAUTH_PROVIDER" -> "/oauth",
+    "NOFLO_OAUTH_GATE" -> "/oauth",
+    "NOFLO_OAUTH_SERVICE_USER" -> "/oauth",
     "NOFLO_REGISTRY_SERVICE" -> "/registry",
     "NOFLO_APP_NAME" -> "ScalaFBP UI",
     "NOFLO_APP_TITLE" -> "ScalaFBP Development Environment",

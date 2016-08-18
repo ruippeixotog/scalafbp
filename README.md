@@ -10,7 +10,7 @@ The quickest way to get the service up is to use [Docker](https://www.docker.com
 docker run -d -p 3569:3569 ruippeixotog/scalafbp:0.1.0-SNAPSHOT
 ```
 
-An embedded version of the NoFlo UI will be available on port 3569. Currently, you need to log in with a GitHub account in order to use the Scala runtime - that is a temporary restriction. After you authenticate yourself, the "ScalaFBP Runtime" will appear on the list of runtimes and you'll be ready to create projects using it.
+An embedded version of the NoFlo UI will be available on port 3569. After you click the "Login" button (no authentication is needed), the "ScalaFBP Runtime" will appear on the list of runtimes and you'll be ready to create projects using it.
 
 ## Architecture Overview
 
