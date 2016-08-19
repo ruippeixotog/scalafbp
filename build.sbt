@@ -20,6 +20,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.8",
   "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.8",
   "com.typesafe.akka"             %% "akka-stream"                         % "2.4.8",
+  "io.reactivex"                  %% "rxscala"                             % "0.26.2",
   "io.spray"                      %% "spray-json"                          % "1.3.2",
   "org.clapper"                   %% "classutil"                           % "1.0.12",
   "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime",

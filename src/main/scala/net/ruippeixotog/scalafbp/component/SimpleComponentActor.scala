@@ -5,6 +5,7 @@ import scala.collection.immutable.Queue
 import akka.actor.{ Actor, ActorRef }
 import akka.contrib.pattern.ReceivePipeline
 import akka.contrib.pattern.ReceivePipeline.{ HandledCompletely, Inner }
+import rx.lang.scala.{ Observable, Subject }
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor._
@@ -47,6 +48,36 @@ object SimpleComponentActor {
     pipelineInner {
       case msg @ Incoming(port, data) =>
         sourcesMap(port).set(data)
+        Inner(msg)
+    }
+
+    def receive: Receive = Actor.emptyBehavior
+  }
+
+  trait RxDefinition extends Actor with ReceivePipeline {
+    def component: Component
+
+    private[this] val subjectsMap =
+      component.inPorts.map(_.id -> Subject[Any]()).toMap
+
+    implicit class RxEnabledInPort[A](val inPort: InPort[A]) {
+      def stream: Observable[A] = subjectsMap(inPort.id).asInstanceOf[Subject[A]]
+    }
+
+    implicit class RichObservable[A](val obs: Observable[A]) {
+      def pipeTo(outPort: OutPort[A]): obs.type = {
+        obs.foreach(sender() ! Outgoing(outPort.id, _))
+        obs
+      }
+    }
+
+    pipelineInner {
+      case msg @ Incoming(port, data) =>
+        subjectsMap(port).onNext(data)
+        Inner(msg)
+
+      case msg @ InPortDisconnected(port) =>
+        subjectsMap(port).onCompleted()
         Inner(msg)
     }
 
