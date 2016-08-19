@@ -21,6 +21,8 @@ class MapSpec extends ComponentSpec with AutoTerminateSpec {
       Map.outPort must receive(JsNumber(0))
 
       Map.funcPort.send("return x * 2 + 1")
+      Map.outPort must receiveNothing
+
       Map.inPort.send(JsNumber(0))
       Map.outPort must receive(JsNumber(1))
       Map.inPort.send(JsNumber(3))
@@ -35,6 +37,8 @@ class MapSpec extends ComponentSpec with AutoTerminateSpec {
       Map.outPort must receive(JsNumber(7))
 
       Map.funcPort.send("return (x + 2) * 2")
+      Map.outPort must receiveNothing
+
       Map.inPort.send(JsNumber(0))
       Map.outPort must receive(JsNumber(4))
       Map.inPort.send(JsNumber(3))

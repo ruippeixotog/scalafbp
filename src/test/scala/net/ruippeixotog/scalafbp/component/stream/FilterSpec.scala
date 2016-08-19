@@ -21,6 +21,8 @@ class FilterSpec extends ComponentSpec with AutoTerminateSpec {
       Filter.outPort must receive(JsNumber(0))
 
       Filter.funcPort.send("return x > 0")
+      Filter.outPort must receiveNothing
+
       Filter.inPort.send(JsNumber(0))
       Filter.outPort must receiveNothing
       Filter.inPort.send(JsNumber(3))
@@ -29,12 +31,14 @@ class FilterSpec extends ComponentSpec with AutoTerminateSpec {
 
     "update the filtering function if it changes" in new ComponentInstance {
       Filter.funcPort.send("return x > 0")
-      Filter.inPort.send(JsNumber(0))
-      Filter.outPort must receiveNothing
       Filter.inPort.send(JsNumber(3))
       Filter.outPort must receive(JsNumber(3))
+      Filter.inPort.send(JsNumber(0))
+      Filter.outPort must receiveNothing
 
       Filter.funcPort.send("return x <= 0")
+      Filter.outPort must receiveNothing
+
       Filter.inPort.send(JsNumber(0))
       Filter.outPort must receive(JsNumber(0))
       Filter.inPort.send(JsNumber(3))

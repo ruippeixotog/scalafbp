@@ -1,11 +1,12 @@
 package net.ruippeixotog.scalafbp.component.stream
 
 import akka.actor.Props
+import rx.lang.scala.Observable
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.VarDefinition
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
-import net.ruippeixotog.scalafbp.util.{ NashornEngine, Var }
+import net.ruippeixotog.scalafbp.util.NashornEngine
 
 case object Map extends Component {
   val name = "stream/Map"
@@ -22,10 +23,10 @@ case object Map extends Component {
   val outPort = OutPort[JsValue]("out", "The transformed stream")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with NashornEngine {
-    val defaultFuncVar = Var.constant[JsFunction](identity)
-    val funcVar = funcPort.value.map(JsFunction(_)).orElse(defaultFuncVar)
+  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with NashornEngine {
+    val defaultFunc = Observable.just[JsFunction](identity)
 
-    funcVar.flatMap { f => inPort.value.map(f) }.pipeTo(outPort)
+    val func = defaultFunc ++ funcPort.stream.map(JsFunction(_))
+    inPort.stream.withLatestFrom(func) { (x, f) => f(x) }.pipeTo(outPort)
   })
 }
