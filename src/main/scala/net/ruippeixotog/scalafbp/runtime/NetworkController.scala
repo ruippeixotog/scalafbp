@@ -9,7 +9,9 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
   def notRunningBehavior(stopped: Boolean): Receive = {
     case Start(graph, outputActor) =>
       log.info(s"Started network of graph $graph")
-      val brokerActor = context.actorOf(Props(new NetworkBroker(graph, outputActor)), "broker")
+      val brokerActor = context.actorOf(
+        Props(new NetworkBroker(graph, outputActor)).withDispatcher("akka.fbp-network-dispatcher"), "broker")
+
       context.watch(brokerActor)
       context.watch(outputActor)
       context.become(runningBehavior(brokerActor, outputActor))
