@@ -29,7 +29,7 @@ object PortDataMarshaller extends LowPriorityImplicits {
   implicit val intMarshaller = forType[Int]("int")
   implicit val floatMarshaller = forType[Float]("number")
   implicit val doubleMarshaller = forType[Double]("number")
-  implicit val stringMarshaller = forType[String]("any") // "any" makes the UI do no parsing and send the input as-is
+  implicit val stringMarshaller = forType[String]("string")
   implicit def mapMarshaller[A: JsonFormat, B: JsonFormat] = forType[Map[A, B]]("object")
   implicit def seqMarshaller[A, MA <: TraversableOnce[A]: JsonFormat] = forType[MA]("array")
 
