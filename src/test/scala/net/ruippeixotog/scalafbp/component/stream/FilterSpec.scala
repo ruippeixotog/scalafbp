@@ -16,7 +16,7 @@ class FilterSpec extends ComponentSpec with AutoTerminateSpec {
       Filter.outPort must receive(JsNumber(3))
     }
 
-    "use the filtering function one it is defined" in new ComponentInstance {
+    "use the filtering function once it is defined" in new ComponentInstance {
       Filter.inPort.send(JsNumber(0))
       Filter.outPort must receive(JsNumber(0))
 

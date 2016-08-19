@@ -18,7 +18,7 @@ case object Filter extends Component {
     "While not defined, all elements pass unfiltered.")
   val inPorts = List(inPort, funcPort)
 
-  val outPort = OutPort[JsValue]("out", "The filtered elements")
+  val outPort = OutPort[JsValue]("out", "The filtered stream")
   val outPorts = List(outPort)
 
   val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with NashornEngine {
