@@ -29,7 +29,8 @@ case object MapConcat extends Component {
     val func = defaultFunc ++ funcPort.stream.map(JsFunction(_))
     inPort.stream.withLatestFrom(func) { (x, f) => f(x) }.flatMapIterable {
       case JsArray(elems) => elems
-      case _ => Nil // TODO send error after support for processerror is added
+      case js => throw new IllegalArgumentException(
+        s"The value ${js.compactPrint} returned by the function is not an array")
     }.pipeTo(outPort)
   })
 }
