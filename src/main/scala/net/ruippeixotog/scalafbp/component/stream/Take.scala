@@ -3,7 +3,7 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, VarDefinition }
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Take extends Component {
@@ -19,16 +19,10 @@ case object Take extends Component {
   val outPort = OutPort[JsValue]("out", "The taken elements")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with PortFlowControl {
-    nPort.requireFirst()
-    inPort.freeze()
+  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+    val in = inPort.bufferedStream
+    val toTake = nPort.stream.head
 
-    nPort.value.foreach { n =>
-      inPort.unfreeze()
-      inPort.value.pipeTo(outPort)
-      inPort.value
-        .scan(n) { (left, _) => left - 1 }
-        .foreach { left => if (left == 0) context.stop(self) }
-    }
+    toTake.flatMap(in.take).doOnCompleted(context.stop(self)).pipeTo(outPort)
   })
 }

@@ -23,24 +23,9 @@ case object Scan extends Component {
 
   val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with PortFlowControl with NashornEngine {
     val in = inPort.bufferedStream
+    val initial = initialPort.stream.head
+    val func = funcPort.stream.head.map(JsFunction2(_, "acc", "x"))
 
-    // TODO send error after support for processerror is added
-    val initial = initialPort.stream.headOption.single.map { // TODO improve this pattern
-      case Some(init) => Some(init)
-      case None =>
-        context.stop(self)
-        None
-    }
-
-    val func = funcPort.stream.map(JsFunction2(_, "acc", "x")).headOption.map {
-      case Some(f) => Some(f)
-      case None =>
-        context.stop(self)
-        None
-    }
-
-    initial.zip(func).flatMap {
-      case (Some(init), Some(f)) => in.scan(init)(f)
-    }.pipeTo(outPort)
+    initial.zip(func).flatMap { case (init, f) => in.scan(init)(f) }.pipeTo(outPort)
   })
 }

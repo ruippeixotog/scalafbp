@@ -44,14 +44,14 @@ class ScanSpec extends ComponentSpec with AutoTerminateSpec {
       Scan.outPort must receive(JsNumber(28))
     }
 
-    "terminate immediately if the initial value port does not send any data" in new ComponentInstance {
+    "terminate with a ProcessError if the initial value port does not send any data" in new ComponentInstance {
       Scan.initialPort.close()
-      this must terminate()
+      this must terminateWithProcessError()
     }
 
-    "terminate immediately if the function port does not send any data" in new ComponentInstance {
+    "terminate with a ProcessError if the function port does not send any data" in new ComponentInstance {
       Scan.funcPort.close()
-      this must terminate()
+      this must terminateWithProcessError()
     }
 
     "terminate when all ports are closed after some messages are received" in new ComponentInstance {
