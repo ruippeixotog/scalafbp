@@ -23,6 +23,7 @@ class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor
     def receive = {
       case output: ComponentActor.Output => inner ! output.toMessage
       case error: NetworkBroker.Error => inner ! error.toMessage
+      case error: NetworkBroker.ProcessError => inner ! error.toMessage
       case activity: NetworkBroker.Activity => inner ! activity.toMessage
       case finished: NetworkController.Finished => inner ! finished.toMessage
 

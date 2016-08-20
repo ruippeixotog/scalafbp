@@ -1,15 +1,16 @@
 package net.ruippeixotog.scalafbp.component
 
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration._
 
 import akka.actor._
-import akka.testkit.{ TestKit, TestProbe }
+import akka.testkit.{ TestActorRef, TestKit, TestProbe }
 import org.specs2.execute.AsResult
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
+import net.ruippeixotog.scalafbp.runtime.NetworkBrokerSupervisorStrategy
 
 abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLike {
   def component: Component
@@ -23,9 +24,17 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
   }
 
   trait ComponentInstance extends Scope {
-    val componentActor = system.actorOf(component.instanceProps)
-
     private[this] val outPortProbes = component.outPorts.map(_.id -> TestProbe()).toMap
+    private[this] val processErrorProbe = TestProbe()
+
+    private[this] val brokerActor = TestActorRef(new Actor {
+      override def supervisorStrategy = new NetworkBrokerSupervisorStrategy({ (_, cause) =>
+        processErrorProbe.ref ! cause
+      })
+      def receive = Actor.emptyBehavior
+    })
+
+    private[this] val componentActor = brokerActor.underlyingActor.context.actorOf(component.instanceProps)
     private[this] val componentWatcherProbe = TestProbe()
     componentWatcherProbe.watch(componentActor)
 
@@ -79,6 +88,11 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
 
     def terminate(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
       componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
+    }
+
+    def terminateWithProcessError(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
+      componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
+      processErrorProbe.expectMsgType[Throwable] must not(throwAn[Exception])
     }
   }
 }

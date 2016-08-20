@@ -57,11 +57,10 @@ object SimpleComponentActor {
   trait RxDefinition extends Actor with ReceivePipeline {
     def component: Component
 
-    private[this] val subjectsMap =
-      component.inPorts.map(_.id -> Subject[Any]()).toMap
+    private[this] val subjects = component.inPorts.map(_.id -> Subject[Any]()).toMap
 
     implicit class RxEnabledInPort[A](val inPort: InPort[A]) {
-      def stream: Observable[A] = subjectsMap(inPort.id).asInstanceOf[Subject[A]]
+      def stream: Observable[A] = subjects(inPort.id).asInstanceOf[Subject[A]]
 
       def bufferedStream: Observable[A] = {
         val str = stream.replay
@@ -79,11 +78,11 @@ object SimpleComponentActor {
 
     pipelineInner {
       case msg @ Incoming(port, data) =>
-        subjectsMap(port).onNext(data)
+        subjects(port).onNext(data)
         Inner(msg)
 
       case msg @ InPortDisconnected(port) =>
-        subjectsMap(port).onCompleted()
+        subjects(port).onCompleted()
         Inner(msg)
     }
 

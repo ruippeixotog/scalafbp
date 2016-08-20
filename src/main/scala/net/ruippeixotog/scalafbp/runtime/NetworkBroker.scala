@@ -11,6 +11,10 @@ import net.ruippeixotog.scalafbp.runtime.NetworkBroker._
 
 class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with ActorLogging {
 
+  override def supervisorStrategy = new NetworkBrokerSupervisorStrategy({ (child, cause) =>
+    outputActor ! ProcessError(graph.id, actorNodeIds(child), cause.getMessage)
+  })
+
   // a map from node IDs to actors running the nodes
   val nodeActors: Map[String, ActorRef] =
     graph.nodes.map {
@@ -217,4 +221,5 @@ object NetworkBroker {
   case class Data(graph: String, src: Option[PortRef], tgt: PortRef, data: JsValue) extends Activity
 
   case class Error(msg: String)
+  case class ProcessError(graph: String, node: String, msg: String)
 }

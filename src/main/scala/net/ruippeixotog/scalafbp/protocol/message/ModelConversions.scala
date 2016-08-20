@@ -97,6 +97,12 @@ object ToMessageConversions {
   implicit class ErrorConvertible(val error: NetworkBroker.Error) extends AnyVal with ToMessageConvertible {
     def toMessage = Error(error.msg)
   }
+
+  implicit class ProcessErrorConvertible(val error: NetworkBroker.ProcessError)
+      extends AnyVal with ToMessageConvertible {
+
+    def toMessage = ProcessError(error.node, error.msg, error.graph)
+  }
 }
 
 object FromMessageConversions {
