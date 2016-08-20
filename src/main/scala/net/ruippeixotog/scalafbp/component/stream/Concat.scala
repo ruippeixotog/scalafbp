@@ -3,8 +3,7 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, VarDefinition }
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Concat extends Component {
@@ -20,13 +19,7 @@ case object Concat extends Component {
   val outPort = OutPort[JsValue]("out", "The concatenated stream")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with VarDefinition with PortFlowControl {
-    in1Port.value.pipeTo(outPort)
-    in2Port.value.pipeTo(outPort)
-    in2Port.freeze()
-
-    override def receive = {
-      case InPortDisconnected("in1") => in2Port.unfreeze()
-    }
+  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+    (in1Port.stream ++ in2Port.bufferedStream).pipeTo(outPort)
   })
 }

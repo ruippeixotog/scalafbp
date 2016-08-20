@@ -1,7 +1,6 @@
 package net.ruippeixotog.scalafbp.component.stream
 
 import akka.actor.Props
-import rx.lang.scala.Observable
 import spray.json._
 
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
@@ -23,13 +22,12 @@ case object Filter extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with NashornEngine {
-    val defaultFunc = Observable.just[JsFunction]({ _ => JsTrue })
-    val isTruthy = { v: JsValue => v != JsFalse && v != JsNull }
+    val defaultFunc: JsFunction = { _ => JsTrue }
+    val func = defaultFunc +: funcPort.stream.map(JsFunction(_))
 
-    val func = defaultFunc ++ funcPort.stream.map(JsFunction(_))
     inPort.stream
-      .withLatestFrom(func) { (x, f) => (x, isTruthy(f(x))) }
-      .filter(_._2)
+      .withLatestFrom(func) { (x, f) => (x, f(x)) }
+      .filter { case (_, v) => v != JsFalse && v != JsNull }
       .map(_._1)
       .pipeTo(outPort)
   })

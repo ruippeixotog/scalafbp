@@ -1,7 +1,6 @@
 package net.ruippeixotog.scalafbp.component.stream
 
 import akka.actor.Props
-import rx.lang.scala.Observable
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
@@ -24,9 +23,8 @@ case object Map extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with NashornEngine {
-    val defaultFunc = Observable.just[JsFunction](identity)
-
-    val func = defaultFunc ++ funcPort.stream.map(JsFunction(_))
+    val defaultFunc: JsFunction = identity
+    val func = defaultFunc +: funcPort.stream.map(JsFunction(_))
     inPort.stream.withLatestFrom(func) { (x, f) => f(x) }.pipeTo(outPort)
   })
 }

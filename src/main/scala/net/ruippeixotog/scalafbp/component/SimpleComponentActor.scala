@@ -62,6 +62,12 @@ object SimpleComponentActor {
 
     implicit class RxEnabledInPort[A](val inPort: InPort[A]) {
       def stream: Observable[A] = subjectsMap(inPort.id).asInstanceOf[Subject[A]]
+
+      def bufferedStream: Observable[A] = {
+        val str = stream.replay
+        str.connect
+        str
+      }
     }
 
     implicit class RichObservable[A](val obs: Observable[A]) {
