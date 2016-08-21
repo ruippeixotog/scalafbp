@@ -1,9 +1,9 @@
 package net.ruippeixotog.scalafbp.component.core
 
-import akka.actor.{ Actor, Props }
+import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.{ Component, InPort, SimpleComponentActor }
+import net.ruippeixotog.scalafbp.component._
 
 case object Drop extends Component {
   val name = "core/Drop"
@@ -16,7 +16,5 @@ case object Drop extends Component {
 
   val outPorts = Nil
 
-  val instanceProps = Props(new SimpleComponentActor(this) {
-    def receive = Actor.emptyBehavior
-  })
+  val instanceProps = Props(new ComponentActor(this) {})
 }

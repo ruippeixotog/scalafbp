@@ -6,7 +6,6 @@ import akka.actor.Props
 import rx.lang.scala.Observable
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object RepeatDelayed extends Component {
@@ -22,7 +21,7 @@ case object RepeatDelayed extends Component {
   val outPort = OutPort[JsValue]("out", "Forwarded packet")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     val str = inPort.stream
       .withLatestFrom(delayPort.stream)((_, _))
       .flatMap { case (in, delay) => Observable.just(in).delay(delay.millis) }

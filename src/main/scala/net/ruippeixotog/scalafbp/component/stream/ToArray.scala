@@ -4,7 +4,6 @@ import akka.actor.Props
 import spray.json.DefaultJsonProtocol._
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 object ToArray extends Component {
@@ -19,7 +18,7 @@ object ToArray extends Component {
   val arrayPort = OutPort[List[JsValue]]("array", "The input stream packed as an array")
   val outPorts = List(arrayPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     inPort.stream.toList.pipeTo(arrayPort)
   })
 }

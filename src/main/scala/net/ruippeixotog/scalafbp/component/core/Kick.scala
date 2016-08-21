@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.core
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Kick extends Component {
@@ -19,7 +18,7 @@ case object Kick extends Component {
   val outPort = OutPort[JsValue]("out", "The kicked packet")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     kickPort.stream.withLatestFrom(inPort.stream) { (_, in) => in }.pipeTo(outPort)
   })
 }

@@ -5,8 +5,7 @@ import scala.concurrent.duration._
 import akka.actor._
 import rx.lang.scala.Observable
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
-import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
+import net.ruippeixotog.scalafbp.component._
 
 case object RunTimeout extends Component {
   val name = "core/RunTimeout"
@@ -20,8 +19,8 @@ case object RunTimeout extends Component {
   val outPort = OutPort[Unit]("out", "A signal sent after the given time")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new Actor with RxDefinition {
-    def component = RunTimeout
+  val instanceProps = Props(new ComponentActor(this) {
+    override val terminationPolicy = Nil
 
     timePort.stream.take(1)
       .flatMap { t => Observable.timer(t.millis).map(_ => ()) }

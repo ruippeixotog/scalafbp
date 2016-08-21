@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.core
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Repeat extends Component {
@@ -18,7 +17,7 @@ case object Repeat extends Component {
   val outPorts = List(
     OutPort[JsValue]("out", "Forwarded packet"))
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     inPorts.head.stream.pipeTo(outPorts.head)
   })
 }

@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json._
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 import net.ruippeixotog.scalafbp.util.NashornEngine
 
@@ -21,7 +20,7 @@ case object Filter extends Component {
   val outPort = OutPort[JsValue]("out", "The filtered stream")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with NashornEngine {
+  val instanceProps = Props(new ComponentActor(this) with NashornEngine {
     val defaultFunc: JsFunction = { _ => JsTrue }
     val func = defaultFunc +: funcPort.stream.map(JsFunction(_))
 

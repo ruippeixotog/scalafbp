@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Drop extends Component {
@@ -19,7 +18,7 @@ case object Drop extends Component {
   val outPort = OutPort[JsValue]("out", "The elements that were not dropped")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     val in = inPort.bufferedStream
     val toDrop = nPort.stream.head
 

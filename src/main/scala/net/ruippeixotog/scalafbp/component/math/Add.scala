@@ -2,7 +2,6 @@ package net.ruippeixotog.scalafbp.component.math
 
 import akka.actor.Props
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Add extends Component {
@@ -18,7 +17,7 @@ case object Add extends Component {
   val sumPort = OutPort[Double]("sum", "The sum of the two inputs")
   val outPorts = List(sumPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     augendPort.stream.combineLatestWith(addendPort.stream)(_ + _).pipeTo(sumPort)
   })
 }

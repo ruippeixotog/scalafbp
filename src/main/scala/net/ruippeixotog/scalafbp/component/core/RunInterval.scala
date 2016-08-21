@@ -5,7 +5,6 @@ import scala.concurrent.duration._
 import akka.actor._
 import rx.lang.scala.Observable
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object RunInterval extends Component {
@@ -21,8 +20,8 @@ case object RunInterval extends Component {
   val outPort = OutPort[Unit]("out", "A signal sent at the given interval")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new Actor with RxDefinition {
-    def component = RunInterval
+  val instanceProps = Props(new ComponentActor(this) {
+    override val terminationPolicy = Nil
 
     intervalPort.stream
       .switchMap { int => Observable.interval(int.millis).map(_ => ()) }

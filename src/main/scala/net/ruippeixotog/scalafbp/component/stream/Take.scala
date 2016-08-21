@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object Take extends Component {
@@ -19,7 +18,7 @@ case object Take extends Component {
   val outPort = OutPort[JsValue]("out", "The taken elements")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     val in = inPort.bufferedStream
     val toTake = nPort.stream.head
 

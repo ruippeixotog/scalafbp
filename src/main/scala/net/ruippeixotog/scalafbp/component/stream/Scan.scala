@@ -3,7 +3,6 @@ package net.ruippeixotog.scalafbp.component.stream
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.{ PortFlowControl, RxDefinition }
 import net.ruippeixotog.scalafbp.component._
 import net.ruippeixotog.scalafbp.util.NashornEngine
 
@@ -21,7 +20,7 @@ case object Scan extends Component {
   val outPort = OutPort[JsValue]("out", "The generated elements")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition with PortFlowControl with NashornEngine {
+  val instanceProps = Props(new ComponentActor(this) with NashornEngine {
     val in = inPort.bufferedStream
     val initial = initialPort.stream.head
     val func = funcPort.stream.head.map(JsFunction2(_, "acc", "x"))

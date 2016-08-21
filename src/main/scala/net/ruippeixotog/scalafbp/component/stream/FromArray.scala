@@ -4,7 +4,6 @@ import akka.actor.Props
 import spray.json.DefaultJsonProtocol._
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 object FromArray extends Component {
@@ -19,7 +18,7 @@ object FromArray extends Component {
   val outPort = OutPort[JsValue]("out", "The stream of unpacked data")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+  val instanceProps = Props(new ComponentActor(this) {
     arrayPort.stream.flatMapIterable(identity).pipeTo(outPort)
   })
 }
