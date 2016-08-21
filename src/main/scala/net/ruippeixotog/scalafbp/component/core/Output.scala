@@ -21,8 +21,8 @@ case object Output extends Component {
   val instanceProps = Props(new SimpleComponentActor(this) {
     def receive = {
       case Incoming("in", data: JsValue) =>
-        sender() ! ComponentActor.Message(data.compactPrint)
-        sender() ! Outgoing("out", data)
+        context.parent ! ComponentActor.Message(data.compactPrint)
+        context.parent ! Outgoing("out", data)
     }
   })
 }

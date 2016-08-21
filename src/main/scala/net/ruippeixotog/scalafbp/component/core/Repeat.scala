@@ -20,7 +20,7 @@ case object Repeat extends Component {
 
   val instanceProps = Props(new SimpleComponentActor(this) {
     def receive = {
-      case Incoming("in", data) => sender() ! Outgoing("out", data)
+      case Incoming("in", data) => context.parent ! Outgoing("out", data)
     }
   })
 }

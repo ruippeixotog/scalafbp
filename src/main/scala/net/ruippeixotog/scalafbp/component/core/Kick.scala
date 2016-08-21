@@ -24,7 +24,7 @@ case object Kick extends Component {
 
     def receive = {
       case Incoming("in", packet: JsValue) => nextPacket = Some(packet)
-      case Incoming("kick", _) => nextPacket.foreach(sender() ! Outgoing("out", _))
+      case Incoming("kick", _) => nextPacket.foreach(context.parent ! Outgoing("out", _))
     }
   })
 }

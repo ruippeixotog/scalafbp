@@ -25,7 +25,7 @@ case object RunTimeout extends Component {
 
     def receive = {
       case Incoming("time", time: Int) =>
-        context.system.scheduler.scheduleOnce(time.millis, self, SendSignal(sender()))
+        context.system.scheduler.scheduleOnce(time.millis, self, SendSignal(context.parent))
 
       case SendSignal(to) =>
         to ! Outgoing("out", ())

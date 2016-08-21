@@ -32,7 +32,7 @@ case object RepeatDelayed extends Component {
 
       case Incoming("in", data: JsValue) =>
         currDelay.foreach {
-          context.system.scheduler.scheduleOnce(_, self, SendPacket(sender(), data))
+          context.system.scheduler.scheduleOnce(_, self, SendPacket(context.parent, data))
         }
 
       case SendPacket(to, data) => to ! Outgoing("out", data)

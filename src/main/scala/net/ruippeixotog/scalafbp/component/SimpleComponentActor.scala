@@ -40,7 +40,7 @@ object SimpleComponentActor {
 
     implicit class RichVar[A](v: Var[A]) {
       def pipeTo(outPort: OutPort[A]): outPort.type = {
-        v.foreach(sender() ! Outgoing(outPort.id, _))
+        v.foreach(context.parent ! Outgoing(outPort.id, _))
         outPort
       }
     }
@@ -63,6 +63,7 @@ object SimpleComponentActor {
       def stream: Observable[A] = subjects(inPort.id).asInstanceOf[Subject[A]]
 
       def bufferedStream: Observable[A] = {
+        // TODO this will cache *all* messages *forever*, not just until the first subscriber connects
         val str = stream.replay
         str.connect
         str
@@ -71,7 +72,7 @@ object SimpleComponentActor {
 
     implicit class RichObservable[A](val obs: Observable[A]) {
       def pipeTo(outPort: OutPort[A]): obs.type = {
-        obs.foreach(sender() ! Outgoing(outPort.id, _))
+        obs.foreach(context.parent ! Outgoing(outPort.id, _))
         obs
       }
     }
@@ -130,12 +131,12 @@ object SimpleComponentActor {
       case Some(IgnoreIncoming) => Inner(msg)
 
       case Some(Freeze(stash)) =>
-        portState += (port -> Freeze(stash.enqueue(msg, sender())))
+        portState += (port -> Freeze(stash.enqueue(msg, context.parent)))
         HandledCompletely
 
       case Some(RequireFirst) if msg.isInstanceOf[Incoming] =>
         portState += (port -> IgnoreIncoming)
-        sender() ! DisconnectInPort(port)
+        context.parent ! DisconnectInPort(port)
         Inner(msg)
 
       case Some(RequireFirst) =>

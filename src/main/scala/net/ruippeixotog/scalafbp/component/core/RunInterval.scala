@@ -30,7 +30,7 @@ case object RunInterval extends Component {
       case Incoming("interval", interval: Int) =>
         nextSignalSchedule.map(_.cancel())
         nextSignalSchedule = Some(context.system.scheduler.schedule(
-          interval.millis, interval.millis, self, SendPacket(sender())))
+          interval.millis, interval.millis, self, SendPacket(context.parent)))
 
       case Incoming("stop", _) => context.stop(self)
 

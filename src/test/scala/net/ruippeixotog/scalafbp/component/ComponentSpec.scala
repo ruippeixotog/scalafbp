@@ -31,23 +31,20 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       override def supervisorStrategy = new NetworkBrokerSupervisorStrategy({ (_, cause) =>
         processErrorProbe.ref ! cause
       })
-      def receive = Actor.emptyBehavior
+
+      def receive = {
+        case msg @ Outgoing(port, data) => outPortProbes(port).ref.forward(msg)
+        case msg @ DisconnectOutPort(port) => outPortProbes(port).ref.forward(msg)
+      }
     })
 
     private[this] val componentActor = brokerActor.underlyingActor.context.actorOf(component.instanceProps)
     private[this] val componentWatcherProbe = TestProbe()
     componentWatcherProbe.watch(componentActor)
 
-    private[this] val forwarder = system.actorOf(Props(new Actor {
-      def receive = {
-        case msg @ Outgoing(port, _) => outPortProbes(port).ref.forward(msg)
-        case msg @ DisconnectOutPort(port) => outPortProbes(port).ref.forward(msg)
-      }
-    }))
-
     implicit class RichInPort[A](inPort: InPort[A]) {
-      def send(data: A): Unit = componentActor.tell(Incoming(inPort.id, data), forwarder)
-      def close(): Unit = componentActor.tell(InPortDisconnected(inPort.id), forwarder)
+      def send(data: A): Unit = componentActor ! Incoming(inPort.id, data)
+      def close(): Unit = componentActor ! InPortDisconnected(inPort.id)
     }
 
     def receive[A](data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>

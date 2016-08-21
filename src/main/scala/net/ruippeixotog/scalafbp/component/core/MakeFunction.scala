@@ -32,7 +32,7 @@ case object MakeFunction extends Component {
 
       case Incoming("in", data: JsValue) =>
         currFunc.foreach { f =>
-          sender() ! Outgoing("out", f(data))
+          context.parent ! Outgoing("out", f(data))
         }
     }
   })
