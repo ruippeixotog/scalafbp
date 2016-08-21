@@ -25,6 +25,7 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
 
   trait ComponentInstance extends Scope {
     private[this] val outPortProbes = component.outPorts.map(_.id -> TestProbe()).toMap
+    private[this] val outputProbe = TestProbe()
     private[this] val processErrorProbe = TestProbe()
 
     private[this] val brokerActor = TestActorRef(new Actor {
@@ -35,6 +36,7 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       def receive = {
         case msg @ Outgoing(port, data) => outPortProbes(port).ref.forward(msg)
         case msg @ DisconnectOutPort(port) => outPortProbes(port).ref.forward(msg)
+        case msg: ComponentActor.Output => outputProbe.ref.forward(msg)
       }
     })
 
@@ -89,6 +91,10 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
 
     def beClosed[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
       outPortProbes(outPort.id).expectMsg(max, DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
+    }
+
+    def sendOutput(msg: String): Matcher[ComponentInstance] = { instance: ComponentInstance =>
+      outputProbe.expectMsg(ComponentActor.Message(msg)) must not(throwAn[Exception])
     }
 
     def terminate(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
