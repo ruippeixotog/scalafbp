@@ -27,6 +27,7 @@ object PortDataMarshaller extends LowPriorityImplicits {
   implicit val booleanMarshaller = forType[Boolean]("boolean")
   implicit val shortMarshaller = forType[Short]("int")
   implicit val intMarshaller = forType[Int]("int")
+  implicit val longMarshaller = forType[Long]("int")
   implicit val floatMarshaller = forType[Float]("number")
   implicit val doubleMarshaller = forType[Double]("number")
   implicit val stringMarshaller = forType[String]("string")
