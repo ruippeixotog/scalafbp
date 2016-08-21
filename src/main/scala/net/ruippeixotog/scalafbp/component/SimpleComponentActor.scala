@@ -57,6 +57,9 @@ object SimpleComponentActor {
   trait RxDefinition extends Actor with ReceivePipeline {
     def component: Component
 
+    private[this] val deadLetters = context.system.deadLetters
+    private[this] def broker = Option(context).fold(deadLetters)(_.parent)
+
     private[this] val subjects = component.inPorts.map(_.id -> Subject[Any]()).toMap
 
     implicit class RxEnabledInPort[A](val inPort: InPort[A]) {
@@ -72,7 +75,7 @@ object SimpleComponentActor {
 
     implicit class RichObservable[A](val obs: Observable[A]) {
       def pipeTo(outPort: OutPort[A]): obs.type = {
-        obs.foreach(context.parent ! Outgoing(outPort.id, _))
+        obs.foreach(broker ! Outgoing(outPort.id, _))
         obs
       }
     }
