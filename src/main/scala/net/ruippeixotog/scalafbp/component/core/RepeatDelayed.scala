@@ -1,11 +1,12 @@
 package net.ruippeixotog.scalafbp.component.core
 
+import scala.concurrent.duration._
+
 import akka.actor.{ ActorRef, Props }
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort, SimpleComponentActor }
-import scala.concurrent.duration._
+import net.ruippeixotog.scalafbp.component._
 
 case object RepeatDelayed extends Component {
   val name = "core/RepeatDelayed"
@@ -13,12 +14,12 @@ case object RepeatDelayed extends Component {
   val icon = Some("clock-o")
   val isSubgraph = true
 
-  val inPorts = List(
-    InPort[JsValue]("in", "Packet to forward with a delay"),
-    InPort[Int]("delay", "Delay length (ms)"))
+  val inPort = InPort[JsValue]("in", "Packet to forward with a delay")
+  val delayPort = InPort[Long]("delay", "Delay length (ms)")
+  val inPorts = List(inPort, delayPort)
 
-  val outPorts = List(
-    OutPort[JsValue]("out", "Forwarded packet"))
+  val outPort = OutPort[JsValue]("out", "Forwarded packet")
+  val outPorts = List(outPort)
 
   val instanceProps = Props(new SimpleComponentActor(this) {
     var currDelay = Option.empty[FiniteDuration]
@@ -27,7 +28,7 @@ case object RepeatDelayed extends Component {
     case class SendPacket(to: ActorRef, data: JsValue)
 
     def receive = {
-      case Incoming("delay", delay: Int) =>
+      case Incoming("delay", delay: Long) =>
         currDelay = Some(delay.millis)
 
       case Incoming("in", data: JsValue) =>

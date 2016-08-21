@@ -12,12 +12,12 @@ case object Kick extends Component {
   val icon = Some("share")
   val isSubgraph = true
 
-  val inPorts = List(
-    InPort[JsValue]("in", "Packet to be sent"),
-    InPort[Unit]("kick", "Signal to send the data packet"))
+  val inPort = InPort[JsValue]("in", "Packet to be sent")
+  val kickPort = InPort[Unit]("kick", "Signal to send the data packet")
+  val inPorts = List(inPort, kickPort)
 
-  val outPorts = List(
-    OutPort[JsValue]("out", "The kicked packet"))
+  val outPort = OutPort[JsValue]("out", "The kicked packet")
+  val outPorts = List(outPort)
 
   val instanceProps = Props(new SimpleComponentActor(this) {
     var nextPacket = Option.empty[JsValue]
