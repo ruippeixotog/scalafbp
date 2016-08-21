@@ -3,8 +3,9 @@ package net.ruippeixotog.scalafbp.component.core
 import scala.concurrent.duration._
 
 import akka.actor._
+import rx.lang.scala.Observable
 
-import net.ruippeixotog.scalafbp.component.ComponentActor._
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort }
 
 case object RunTimeout extends Component {
@@ -13,23 +14,18 @@ case object RunTimeout extends Component {
   val icon = Some("clock-o")
   val isSubgraph = true
 
-  val inPorts = List(
-    InPort[Int]("time", "Time after which a signal will be sent (ms)"))
+  val timePort = InPort[Long]("time", "Time after which a signal will be sent (ms)")
+  val inPorts = List(timePort)
 
-  val outPorts = List(
-    OutPort[Unit]("out", "A signal sent after the given time"))
+  val outPort = OutPort[Unit]("out", "A signal sent after the given time")
+  val outPorts = List(outPort)
 
-  val instanceProps = Props(new Actor {
-    implicit val ec = context.dispatcher
-    case class SendSignal(to: ActorRef)
+  val instanceProps = Props(new Actor with RxDefinition {
+    def component = RunTimeout
 
-    def receive = {
-      case Incoming("time", time: Int) =>
-        context.system.scheduler.scheduleOnce(time.millis, self, SendSignal(context.parent))
-
-      case SendSignal(to) =>
-        to ! Outgoing("out", ())
-        context.stop(self)
-    }
+    timePort.stream.take(1)
+      .flatMap { t => Observable.timer(t.millis).map(_ => ()) }
+      .doOnCompleted(context.stop(self))
+      .pipeTo(outPort)
   })
 }

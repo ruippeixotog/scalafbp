@@ -9,7 +9,7 @@ class RunIntervalSpec extends ComponentSpec {
 
   val component = RunInterval
 
-  "A Repeat component" should {
+  "A RunInterval component" should {
 
     "do nothing until an interval value is received" in new ComponentInstance {
       RunInterval.outPort must receiveNothing
@@ -53,6 +53,7 @@ class RunIntervalSpec extends ComponentSpec {
 
     "terminate immediately if no interval is sent" in new ComponentInstance {
       RunInterval.intervalPort.close()
+      RunInterval.outPort must receiveNothing
       this must terminate()
     }
 
