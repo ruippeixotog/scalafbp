@@ -27,8 +27,7 @@ class RepeatDelayedSpec extends ComponentSpec with AutoTerminateSpec {
       RepeatDelayed.inPort.send(JsNumber(3))
       RepeatDelayed.inPort.send(JsString("Hello"))
       within(250.millis, 750.millis) {
-        RepeatDelayed.outPort must receive(JsNumber(3))
-        RepeatDelayed.outPort must receive(JsString("Hello"))
+        RepeatDelayed.outPort must receiveAllOf(JsNumber(3), JsString("Hello"))
       }
     }
 

@@ -1,7 +1,6 @@
 package net.ruippeixotog.scalafbp.component.core
 
 import scala.concurrent.duration._
-import spray.json._
 
 import net.ruippeixotog.scalafbp.component.ComponentSpec
 

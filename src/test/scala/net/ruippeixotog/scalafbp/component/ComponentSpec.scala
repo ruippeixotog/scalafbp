@@ -55,6 +55,14 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       outPortProbes(outPort.id).expectMsg(max, Outgoing(outPort.id, data)) must not(throwAn[Exception])
     }
 
+    def receiveAllOf[A](data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id).expectMsgAllOf(data.map(Outgoing(outPort.id, _)): _*) must not(throwAn[Exception])
+    }
+
+    def receiveAllOf[A](max: FiniteDuration, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id).expectMsgAllOf(max, data.map(Outgoing(outPort.id, _)): _*) must not(throwAn[Exception])
+    }
+
     def receiveLike[A, R: AsResult](f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
       outPortProbes(outPort.id).expectMsgPF() {
         case Outgoing(outPort.id, data: A @unchecked) if f.isDefinedAt(data) => f(data)
