@@ -3,8 +3,8 @@ package net.ruippeixotog.scalafbp.component.core
 import akka.actor.Props
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing }
-import net.ruippeixotog.scalafbp.component.{ Component, InPort, OutPort, SimpleComponentActor }
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
+import net.ruippeixotog.scalafbp.component._
 
 case object Kick extends Component {
   val name = "core/Kick"
@@ -19,12 +19,7 @@ case object Kick extends Component {
   val outPort = OutPort[JsValue]("out", "The kicked packet")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) {
-    var nextPacket = Option.empty[JsValue]
-
-    def receive = {
-      case Incoming("in", packet: JsValue) => nextPacket = Some(packet)
-      case Incoming("kick", _) => nextPacket.foreach(context.parent ! Outgoing("out", _))
-    }
+  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+    kickPort.stream.withLatestFrom(inPort.stream) { (_, in) => in }.pipeTo(outPort)
   })
 }

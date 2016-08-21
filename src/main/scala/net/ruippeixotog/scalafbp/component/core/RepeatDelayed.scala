@@ -2,10 +2,11 @@ package net.ruippeixotog.scalafbp.component.core
 
 import scala.concurrent.duration._
 
-import akka.actor.{ ActorRef, Props }
+import akka.actor.Props
+import rx.lang.scala.Observable
 import spray.json.JsValue
 
-import net.ruippeixotog.scalafbp.component.ComponentActor._
+import net.ruippeixotog.scalafbp.component.SimpleComponentActor.RxDefinition
 import net.ruippeixotog.scalafbp.component._
 
 case object RepeatDelayed extends Component {
@@ -21,22 +22,10 @@ case object RepeatDelayed extends Component {
   val outPort = OutPort[JsValue]("out", "Forwarded packet")
   val outPorts = List(outPort)
 
-  val instanceProps = Props(new SimpleComponentActor(this) {
-    var currDelay = Option.empty[FiniteDuration]
-
-    implicit val ec = context.dispatcher
-    case class SendPacket(to: ActorRef, data: JsValue)
-
-    def receive = {
-      case Incoming("delay", delay: Long) =>
-        currDelay = Some(delay.millis)
-
-      case Incoming("in", data: JsValue) =>
-        currDelay.foreach {
-          context.system.scheduler.scheduleOnce(_, self, SendPacket(context.parent, data))
-        }
-
-      case SendPacket(to, data) => to ! Outgoing("out", data)
-    }
+  val instanceProps = Props(new SimpleComponentActor(this) with RxDefinition {
+    val str = inPort.stream
+      .withLatestFrom(delayPort.stream)((_, _))
+      .flatMap { case (in, delay) => Observable.just(in).delay(delay.millis) }
+      .pipeTo(outPort)
   })
 }
