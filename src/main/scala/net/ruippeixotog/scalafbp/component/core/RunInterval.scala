@@ -13,12 +13,12 @@ case object RunInterval extends Component {
   val icon = Some("clock-o")
   val isSubgraph = true
 
-  val inPorts = List(
-    InPort[Int]("interval", "Interval at which signals are emitted (ms)"),
-    InPort[Unit]("stop", "Stop the emission"))
+  val intervalPort = InPort[Int]("interval", "Interval at which signals are emitted (ms)")
+  val stopPort = InPort[Unit]("stop", "Stop the emission")
+  val inPorts = List(intervalPort, stopPort)
 
-  val outPorts = List(
-    OutPort[Unit]("out", "A signal sent at the given interval"))
+  val outPort = OutPort[Unit]("out", "A signal sent at the given interval")
+  val outPorts = List(outPort)
 
   val instanceProps = Props(new Actor {
     var nextSignalSchedule = Option.empty[Cancellable]
@@ -33,6 +33,7 @@ case object RunInterval extends Component {
           interval.millis, interval.millis, self, SendPacket(context.parent)))
 
       case Incoming("stop", _) => context.stop(self)
+      case InPortDisconnected("interval") if nextSignalSchedule.isEmpty => context.stop(self)
 
       case SendPacket(to) => to ! Outgoing("out", ())
     }
