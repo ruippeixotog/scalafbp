@@ -49,6 +49,10 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       def close(): Unit = componentActor ! InPortDisconnected(inPort.id)
     }
 
+    implicit class RichOutPort[A](outPort: OutPort[A]) {
+      def close(): Unit = componentActor ! OutPortDisconnected(outPort.id)
+    }
+
     def receive[A](data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
       outPortProbes(outPort.id).expectMsg(Outgoing(outPort.id, data)) must not(throwAn[Exception])
     }

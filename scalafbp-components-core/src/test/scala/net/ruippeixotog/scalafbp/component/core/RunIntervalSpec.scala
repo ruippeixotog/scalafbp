@@ -2,9 +2,9 @@ package net.ruippeixotog.scalafbp.component.core
 
 import scala.concurrent.duration._
 
-import net.ruippeixotog.scalafbp.component.ComponentSpec
+import net.ruippeixotog.scalafbp.component._
 
-class RunIntervalSpec extends ComponentSpec {
+class RunIntervalSpec extends ComponentSpec with AutoTerminateSpec {
   sequential
 
   val component = RunInterval
@@ -63,5 +63,7 @@ class RunIntervalSpec extends ComponentSpec {
       RunInterval.stopPort.close()
       this must not(terminate())
     }
+
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

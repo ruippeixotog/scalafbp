@@ -46,5 +46,6 @@ class FilterSpec extends ComponentSpec with AutoTerminateSpec {
     }
 
     terminateItselfWhenAllInPortsAreClosed
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

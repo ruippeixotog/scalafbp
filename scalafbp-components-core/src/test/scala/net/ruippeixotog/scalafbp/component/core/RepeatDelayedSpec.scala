@@ -45,5 +45,6 @@ class RepeatDelayedSpec extends ComponentSpec with AutoTerminateSpec {
     }
 
     terminateItselfWhenAllInPortsAreClosed
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

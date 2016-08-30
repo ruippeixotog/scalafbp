@@ -24,5 +24,6 @@ class FromArraySpec extends ComponentSpec with AutoTerminateSpec {
     }
 
     terminateItselfWhenAllInPortsAreClosed
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

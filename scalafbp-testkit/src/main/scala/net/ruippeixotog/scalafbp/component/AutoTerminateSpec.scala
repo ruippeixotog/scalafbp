@@ -7,4 +7,10 @@ trait AutoTerminateSpec { this: ComponentSpec =>
       component.inPorts.foreach(_.close())
       this must terminate()
     }
+
+  def terminateItselfWhenAllOutPortsAreClosed =
+    "terminate itself when all out ports are closed" in new ComponentInstance {
+      component.outPorts.foreach(_.close())
+      this must terminate()
+    }
 }

@@ -65,5 +65,6 @@ class ScanSpec extends ComponentSpec with AutoTerminateSpec {
     }
 
     terminateItselfWhenAllInPortsAreClosed
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

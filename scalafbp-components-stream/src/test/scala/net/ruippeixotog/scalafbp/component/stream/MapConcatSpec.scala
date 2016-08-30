@@ -64,5 +64,6 @@ class MapConcatSpec extends ComponentSpec with AutoTerminateSpec {
     }
 
     terminateItselfWhenAllInPortsAreClosed
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }

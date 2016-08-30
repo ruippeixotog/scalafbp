@@ -2,9 +2,9 @@ package net.ruippeixotog.scalafbp.component.core
 
 import scala.concurrent.duration._
 
-import net.ruippeixotog.scalafbp.component.ComponentSpec
+import net.ruippeixotog.scalafbp.component.{ AutoTerminateSpec, ComponentSpec }
 
-class RunTimeoutSpec extends ComponentSpec {
+class RunTimeoutSpec extends ComponentSpec with AutoTerminateSpec {
   sequential
 
   val component = RunTimeout
@@ -46,5 +46,7 @@ class RunTimeoutSpec extends ComponentSpec {
       this must not(terminate(2000.millis))
       this must terminate(1250.millis)
     }
+
+    terminateItselfWhenAllOutPortsAreClosed
   }
 }
