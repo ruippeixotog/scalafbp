@@ -35,12 +35,9 @@ abstract class ComponentActor[C <: Component](val component: C) extends Actor {
   }
 
   private[this] def shouldTerminate() = {
-    if (openInPorts.isEmpty) {
-      terminationPolicy.contains(OnAllInputPortsClosed) ||
-        (openOutPorts.isEmpty && terminationPolicy.contains(OnAllPortsClosed))
-    } else {
-      openOutPorts.isEmpty && terminationPolicy.contains(OnAllOutputPortsClosed)
-    }
+    openInPorts.isEmpty && terminationPolicy.contains(OnAllInputPortsClosed) ||
+      openOutPorts.isEmpty && terminationPolicy.contains(OnAllOutputPortsClosed) ||
+      openInPorts.isEmpty && openOutPorts.isEmpty && terminationPolicy.contains(OnAllPortsClosed)
   }
 
   final def receive = {
