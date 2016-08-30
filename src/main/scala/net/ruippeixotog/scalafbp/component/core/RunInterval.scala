@@ -5,6 +5,7 @@ import scala.concurrent.duration._
 import akka.actor._
 import rx.lang.scala.Observable
 
+import net.ruippeixotog.scalafbp.component.ComponentActor.OnAllOutputPortsClosed
 import net.ruippeixotog.scalafbp.component._
 
 case object RunInterval extends Component {
@@ -21,7 +22,7 @@ case object RunInterval extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new ComponentActor(this) {
-    override val terminationPolicy = Nil
+    override val terminationPolicy = List(OnAllOutputPortsClosed)
 
     intervalPort.stream
       .switchMap { int => Observable.interval(int.millis).map(_ => ()) }

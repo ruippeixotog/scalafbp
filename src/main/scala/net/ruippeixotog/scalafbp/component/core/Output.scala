@@ -3,6 +3,7 @@ package net.ruippeixotog.scalafbp.component.core
 import akka.actor.Props
 import spray.json.JsValue
 
+import net.ruippeixotog.scalafbp.component.ComponentActor.OnAllInputPortsClosed
 import net.ruippeixotog.scalafbp.component._
 
 case object Output extends Component {
@@ -18,6 +19,8 @@ case object Output extends Component {
     OutPort[JsValue]("out", "The sent packets"))
 
   val instanceProps = Props(new ComponentActor(this) {
+    override val terminationPolicy = List(OnAllInputPortsClosed)
+
     inPorts.head.stream
       .doOnEach { data => broker ! ComponentActor.Message(data.compactPrint) }
       .pipeTo(outPorts.head)
