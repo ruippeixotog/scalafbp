@@ -29,14 +29,17 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
   val actorNodeIds: Map[ActorRef, String] = nodeActors.map(_.swap)
 
   // the initial routing table mapping outgoing ports to a list of destination ports to which packets should be sent
-  val initialRoutes: Map[PortRef, Iterable[PortRef]] =
-    graph.edges.mapValues(_.keys)
+  val initialRoutes: Map[PortRef, Set[PortRef]] =
+    graph.edges.mapValues(_.keySet)
 
-  // a map containing the initial number of inwards edges of each inPort
-  val initialInEdgesCount: Map[PortRef, Int] =
-    initialRoutes.valuesIterator.flatten.foldLeft(Map[PortRef, Int]()) { (acc, port) =>
-      acc + (port -> (acc.getOrElse(port, 0) + 1))
-    }.withDefaultValue(0)
+  // the reversed index of initialRoutes, for checking which ports send data to each target port
+  val initialRevRoutes: Map[PortRef, Set[PortRef]] =
+    initialRoutes.foldLeft(Map[PortRef, Set[PortRef]]()) {
+      case (acc, (src, tgts)) =>
+        tgts.foldLeft(acc) { (acc2, tgt) =>
+          acc2 + (tgt -> (acc2.getOrElse(src, Set.empty) + src))
+        }
+    }
 
   def serialize(portRef: PortRef, data: Any): Option[JsValue] =
     graph.nodes(portRef.node).component.outPorts.find(_.id == portRef.port).map { outPort =>
@@ -76,12 +79,17 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       case (src, tgts) => tgts.foreach(outputActor ! Connect(graph.id, Some(src), _))
     }
 
-    // send an immediate `InPortDisconnected` message to each node actor with an unconnected inPort
+    // send an immediate `InPortDisconnected` to each node actor with an unconnected in port and a `OutPortDisconnected`
+    // to each node actor with an unconnected out port
     graph.nodes.iterator.foreach {
       case (nodeId, node) =>
         node.component.inPorts.foreach { inPort =>
-          if (initialInEdgesCount(PortRef(nodeId, inPort.id)) == 0)
+          if (initialRevRoutes.get(PortRef(nodeId, inPort.id)).forall(_.isEmpty))
             nodeActors(nodeId) ! InPortDisconnected(inPort.id)
+        }
+        node.component.outPorts.foreach { outPort =>
+          if (initialRoutes.get(PortRef(nodeId, outPort.id)).forall(_.isEmpty))
+            nodeActors(nodeId) ! OutPortDisconnected(outPort.id)
         }
     }
   }
@@ -98,8 +106,8 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
   def brokerBehavior(
     activeNodes: Int,
-    routes: Map[PortRef, Iterable[PortRef]],
-    inEdgesCount: Map[PortRef, Int]): Actor.Receive = {
+    routes: Map[PortRef, Set[PortRef]],
+    revRoutes: Map[PortRef, Set[PortRef]]): Actor.Receive = {
 
     case msg @ Outgoing(srcPort, srcData) =>
       withKnownSender(msg) { srcNode =>
@@ -132,71 +140,84 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
 
-        val newInEdgesCount = routes.getOrElse(src, Set.empty).foldLeft(inEdgesCount) { (acc, tgt) =>
+        // disconnect and remove from the reverse routing table every route originating from the disconnected port
+        val newRevRoutes = routes.getOrElse(src, Set.empty).foldLeft(revRoutes) { (acc, tgt) =>
           outputActor ! Disconnect(graph.id, Some(src), tgt)
 
-          if (acc(tgt) > 1) {
-            acc + (tgt -> (acc(tgt) - 1))
-          } else {
+          val newTgtRevRoutes = acc.getOrElse(tgt, Set.empty) - src
+          if (newTgtRevRoutes.isEmpty) {
             nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
             acc - tgt
+          } else {
+            acc + (tgt -> newTgtRevRoutes)
           }
         }
+        nodeActors(src.node) ! OutPortDisconnected(src.port)
 
         log.info(s"Source port $src disconnected")
-        context.become(brokerBehavior(activeNodes, routes - src, newInEdgesCount))
+        context.become(brokerBehavior(activeNodes, routes - src, newRevRoutes))
       }
 
     case msg @ DisconnectInPort(tgtPort) =>
       withKnownSender(msg) { tgtNode =>
         val tgt = PortRef(tgtNode, tgtPort)
 
-        // disconnect and remove from the table every route that targeted the disconnected port
-        var hadDisconnectedRoutes = false
-        val newRoutes = routes.map {
-          case (src, tgts) =>
-            val (disconnectedTargets, newTargets) = tgts.partition(_ == tgt)
-            if (disconnectedTargets.nonEmpty) {
-              outputActor ! Disconnect(graph.id, Some(src), tgt)
-              hadDisconnectedRoutes = true
-            }
-            src -> newTargets
+        // disconnect and remove from the routing table every route that targeted the disconnected port
+        val newRoutes = revRoutes.getOrElse(tgt, Set.empty).foldLeft(routes) { (acc, src) =>
+          outputActor ! Disconnect(graph.id, Some(src), tgt)
+
+          val newSrcRoutes = acc.getOrElse(src, Set.empty) - tgt
+          if (newSrcRoutes.isEmpty) {
+            nodeActors(src.node) ! OutPortDisconnected(src.port)
+            acc - src
+          } else {
+            acc + (src -> newSrcRoutes)
+          }
         }
-
-        // remove the disconnected target from the inEdgesCount map
-        val newInEdgesCount = inEdgesCount - tgt
-
-        // send an `InPortDisconnected` (to the same actor that sent the disconnection) acknowledging the operation.
-        // Do this only if an actual route was disconnected; if not, the port may have been already disconnected after
-        // an initial value.
-        if (hadDisconnectedRoutes)
-          nodeActors(tgtNode) ! InPortDisconnected(tgtPort)
+        nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
 
         log.info(s"Target port $tgt disconnected")
-        context.become(brokerBehavior(activeNodes, newRoutes, newInEdgesCount))
+        context.become(brokerBehavior(activeNodes, newRoutes, revRoutes - tgt))
       }
 
     case Terminated(ref) =>
       actorNodeIds.get(ref).foreach { node =>
-        val (disconnectedRoutes, newRoutes) = routes.partition(_._1.node == node)
+        val (disconnectedRoutes, updRoutes) = routes.partition(_._1.node == node)
+        val (disconnectedRevRoutes, updRevRoutes) = revRoutes.partition(_._1.node == node)
 
-        val newInEdgesCount = disconnectedRoutes.foldLeft(inEdgesCount) {
+        val newRoutes = disconnectedRevRoutes.foldLeft(updRoutes) {
+          case (acc, (tgt, srcs)) =>
+            srcs.foldLeft(acc) { (acc2, src) =>
+              outputActor ! Disconnect(graph.id, Some(src), tgt)
+
+              val newSrcRoutes = acc2.getOrElse(src, Set.empty) - tgt
+              if (newSrcRoutes.isEmpty) {
+                nodeActors(src.node) ! OutPortDisconnected(src.port)
+                acc2 - src
+              } else {
+                acc2 + (src -> newSrcRoutes)
+              }
+            }
+        }
+
+        val newRevRoutes = disconnectedRoutes.foldLeft(updRevRoutes) {
           case (acc, (src, tgts)) =>
             tgts.foldLeft(acc) { (acc2, tgt) =>
               outputActor ! Disconnect(graph.id, Some(src), tgt)
 
-              if (acc2(tgt) > 1) {
-                acc2 + (tgt -> (acc2(tgt) - 1))
-              } else {
+              val newTgtRevRoutes = acc.getOrElse(tgt, Set.empty) - src
+              if (newTgtRevRoutes.isEmpty) {
                 nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
-                acc2 - tgt
+                acc - tgt
+              } else {
+                acc + (tgt -> newTgtRevRoutes)
               }
             }
         }
 
         log.info(s"Node $node terminated")
         if (activeNodes == 1) context.stop(self)
-        else context.become(brokerBehavior(activeNodes - 1, newRoutes, newInEdgesCount))
+        else context.become(brokerBehavior(activeNodes - 1, newRoutes, newRevRoutes))
       }
 
     case output: Output => outputActor ! output
@@ -204,7 +225,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
 
   def receive = {
     startNetwork()
-    brokerBehavior(nodeActors.size, initialRoutes, initialInEdgesCount)
+    brokerBehavior(nodeActors.size, initialRoutes, initialRevRoutes)
   }
 }
 
