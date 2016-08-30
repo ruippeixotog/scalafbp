@@ -1,78 +1,76 @@
-import java.nio.file.NoSuchFileException
+import BuildHelpers._
+import BuildSettings._
 
-import scalariform.formatter.preferences._
+shellPrompt in ThisBuild := { s => Project.extract(s).currentProject.id + " > " }
 
-name := "scalafbp"
-organization := "net.ruippeixotog"
-version := "0.1.0-SNAPSHOT"
+// -- core component classes --
 
-scalaVersion := "2.11.8"
+lazy val core = projectAt("scalafbp-core").
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
+      "io.reactivex"                  %% "rxscala"                             % "0.26.2",
+      "io.spray"                      %% "spray-json"                          % "1.3.2"))
 
-libraryDependencies ++= Seq(
-  "ch.megard"                     %% "akka-http-cors"                      % "0.1.4",
-  "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
-  "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
-  "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
-  "com.typesafe"                   % "config"                              % "1.3.0",
-  "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
-  "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.8",
-  "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.8",
-  "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.8",
-  "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.8",
-  "com.typesafe.akka"             %% "akka-stream"                         % "2.4.8",
-  "io.reactivex"                  %% "rxscala"                             % "0.26.2",
-  "io.spray"                      %% "spray-json"                          % "1.3.2",
-  "org.clapper"                   %% "classutil"                           % "1.0.12",
-  "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime",
-  "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"   % "test",
-  "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test")
+// -- runtime --
 
-scalariformPreferences := scalariformPreferences.value
-  .setPreference(DanglingCloseParenthesis, Prevent)
-  .setPreference(DoubleIndentClassDeclaration, true)
-  .setPreference(PlaceScaladocAsterisksBeneathSecondAsterisk, true)
+lazy val runtime = projectAt("scalafbp-runtime").
+  dependsOn(core).
+  settings(commonSettings: _*).
+  settings(uiBuildSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "ch.megard"                     %% "akka-http-cors"                      % "0.1.4",
+      "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
+      "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
+      "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
+      "com.typesafe"                   % "config"                              % "1.3.0",
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
+      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.8",
+      "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.8",
+      "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.8",
+      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.8",
+      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.8",
+      "io.spray"                      %% "spray-json"                          % "1.3.2",
+      "org.clapper"                   %% "classutil"                           % "1.0.12"))
 
-fork in Test := true
+// -- testkit for components --
 
-// -- general packaging settings --
+lazy val testkit = projectAt("scalafbp-testkit").
+  dependsOn(core, runtime).
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8",
+      "org.specs2"                    %% "specs2-core"                         % "3.8.4"))
 
-enablePlugins(JavaServerAppPackaging)
+// -- component packages --
 
-val buildUi = TaskKey[Unit]("buildUi")
+lazy val coreComponents = projectAt("scalafbp-components-core").
+  dependsOn(core, testkit % "test").
+  settings(commonSettings: _*)
 
-buildUi := {
-  val env = Seq(
-    "NOFLO_OAUTH_PROVIDER" -> "/oauth",
-    "NOFLO_OAUTH_GATE" -> "/oauth",
-    "NOFLO_OAUTH_SERVICE_USER" -> "/oauth",
-    "NOFLO_REGISTRY_SERVICE" -> "/registry",
-    "NOFLO_APP_NAME" -> "ScalaFBP UI",
-    "NOFLO_APP_TITLE" -> "ScalaFBP Development Environment",
-    "NOFLO_OFFLINE_MODE" -> "true",
-    "NOFLO_APP_ANALYTICS" -> "")
+lazy val mathComponents = projectAt("scalafbp-components-math").
+  dependsOn(core, testkit % "test").
+  settings(commonSettings: _*)
 
-  Process("npm install", file("src/main/webapp")).!
-  Process("grunt build", file("src/main/webapp"), env: _*).!
+lazy val streamComponents = projectAt("scalafbp-components-stream").
+  dependsOn(core, testkit % "test").
+  settings(commonSettings: _*)
 
-  IO.listFiles(file("src/main/resources/ui")).foreach { file =>
-    if(file.getName != ".gitignore") IO.delete(file)
-  }
+// -- runtime with included component packages --
 
-  IO.listFiles(file("src/main/webapp")).find(_.getName.matches("^noflo-.*\\.zip$")) match {
-    case Some(zipFile) => IO.unzip(zipFile, file("src/main/resources/ui"))
-    case None => throw new NoSuchFileException("src/main/webapp/noflo-<version>.zip was not found")
-  }
-}
+lazy val scalafbp = projectAt("scalafbp").
+  dependsOn(core, runtime).
+  dependsOn(coreComponents, mathComponents, streamComponents).
+  enablePlugins(JavaServerAppPackaging).
+  settings(commonSettings: _*).
+  settings(dockerPackagingSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime"))
 
-packageBin in Compile <<= (packageBin in Compile).dependsOn(buildUi)
-
-val excludedResources = Seq("application.conf")
-mappings in (Compile, packageBin) ~= { _.filterNot {
-  case (_, resName) => excludedResources.contains(resName)
-}}
-
-// -- Docker packaging settings --
-
-maintainer in Docker := "Rui Gonçalves <ruippeixotog@gmail.com>"
-dockerExposedPorts in Docker := Seq(3569)
-dockerRepository := Some("ruippeixotog")
+lazy val root = (project in file(".")).
+  aggregate(core, testkit, coreComponents, mathComponents, streamComponents, runtime).
+  settings(basicSettings: _*)
