@@ -37,7 +37,7 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     initialRoutes.foldLeft(Map[PortRef, Set[PortRef]]()) {
       case (acc, (src, tgts)) =>
         tgts.foldLeft(acc) { (acc2, tgt) =>
-          acc2 + (tgt -> (acc2.getOrElse(src, Set.empty) + src))
+          acc2 + (tgt -> (acc2.getOrElse(tgt, Set.empty) + src))
         }
     }
 
