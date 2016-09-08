@@ -59,11 +59,18 @@ lazy val streamComponents = projectAt("scalafbp-components-stream").
   dependsOn(core, testkit % "test").
   settings(commonSettings: _*)
 
+lazy val pplComponents = projectAt("scalafbp-components-ppl").
+  dependsOn(core, testkit % "test").
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "net.ruippeixotog"              %% "think-bayes"                         % "1.0-SNAPSHOT"))
+
 // -- runtime with included component packages --
 
 lazy val scalafbp = projectAt("scalafbp").
   dependsOn(core, runtime).
-  dependsOn(coreComponents, mathComponents, streamComponents).
+  dependsOn(coreComponents, mathComponents, streamComponents, pplComponents).
   enablePlugins(JavaServerAppPackaging).
   settings(commonSettings: _*).
   settings(dockerPackagingSettings: _*).
@@ -72,5 +79,5 @@ lazy val scalafbp = projectAt("scalafbp").
       "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime"))
 
 lazy val root = (project in file(".")).
-  aggregate(core, testkit, coreComponents, mathComponents, streamComponents, runtime).
+  aggregate(core, testkit, coreComponents, mathComponents, streamComponents, pplComponents, runtime, scalafbp).
   settings(basicSettings: _*)

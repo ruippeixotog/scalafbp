@@ -23,6 +23,8 @@ object BuildSettings {
       .setPreference(DoubleIndentClassDeclaration, true)
       .setPreference(PlaceScaladocAsterisksBeneathSecondAsterisk, true),
 
+    resolvers += Resolver.sonatypeRepo("snapshots"),
+
     libraryDependencies ++= Seq(
       "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "test",
       "org.specs2"                    %% "specs2-core"                         % "3.8.4"   % "test"),
