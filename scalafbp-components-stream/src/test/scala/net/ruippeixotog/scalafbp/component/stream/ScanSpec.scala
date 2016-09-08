@@ -21,26 +21,37 @@ class ScanSpec extends ComponentSpec with AutoTerminateSpec {
       Scan.outPort must receiveNothing
     }
 
-    "output the initial value first when both all inputs are known" in new ComponentInstance {
-      Scan.inPort.send(JsNumber(3))
+    "output the initial value first when both initial parameters are known" in new ComponentInstance {
       Scan.initialPort.send(JsNumber(0))
       Scan.funcPort.send("return acc + x")
       Scan.outPort must receive(JsNumber(0))
-      Scan.outPort must receive(JsNumber(3))
     }
 
     "output the accumulated value as inputs arrive" in new ComponentInstance {
       Scan.initialPort.send(JsNumber(0))
       Scan.funcPort.send("return acc + x * 2")
+      Scan.outPort must receive(JsNumber(0))
 
       Scan.inPort.send(JsNumber(3))
-      Scan.outPort must receive(JsNumber(0))
       Scan.outPort must receive(JsNumber(6))
 
       Scan.inPort.send(JsNumber(1))
       Scan.outPort must receive(JsNumber(8))
 
       Scan.inPort.send(JsNumber(10))
+      Scan.outPort must receive(JsNumber(28))
+    }
+
+    "consider inputs arrived before the initial parameters are known" in new ComponentInstance {
+      Scan.inPort.send(JsNumber(3))
+      Scan.inPort.send(JsNumber(1))
+      Scan.inPort.send(JsNumber(10))
+
+      Scan.initialPort.send(JsNumber(0))
+      Scan.funcPort.send("return acc + x * 2")
+      Scan.outPort must receive(JsNumber(0))
+      Scan.outPort must receive(JsNumber(6))
+      Scan.outPort must receive(JsNumber(8))
       Scan.outPort must receive(JsNumber(28))
     }
 

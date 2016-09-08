@@ -33,6 +33,12 @@ trait NashornEngine {
 
       { jsValue: JsValue => f(jsValue.compactPrint).parseJson }
     }
+
+    def typed[T1: JsonWriter, R: JsonReader](body: String, varName: String = "x"): T1 => R = {
+      val f = apply(body, varName)
+
+      { arg1: T1 => f(arg1.toJson).convertTo[R] }
+    }
   }
 
   type JsFunction2 = (JsValue, JsValue) => JsValue
@@ -46,6 +52,12 @@ trait NashornEngine {
       val f = engine.getInterface(classOf[JsFunction2Inner])
 
       { (jsValue1: JsValue, jsValue2: JsValue) => f(jsValue1.compactPrint, jsValue2.compactPrint).parseJson }
+    }
+
+    def typed[T1: JsonWriter, T2: JsonWriter, R: JsonReader](body: String, varName1: String = "x", varName2: String = "y"): (T1, T2) => R = {
+      val f = apply(body, varName1, varName2)
+
+      { (arg1: T1, arg2: T2) => f(arg1.toJson, arg2.toJson).convertTo[R] }
     }
   }
 }
