@@ -28,19 +28,6 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
   // the reverse index of `nodeActors`
   val actorNodeIds: Map[ActorRef, String] = nodeActors.map(_.swap)
 
-  // the initial routing table mapping outgoing ports to a list of destination ports to which packets should be sent
-  val initialRoutes: Map[PortRef, Set[PortRef]] =
-    graph.edges.mapValues(_.keySet)
-
-  // the reversed index of initialRoutes, for checking which ports send data to each target port
-  val initialRevRoutes: Map[PortRef, Set[PortRef]] =
-    initialRoutes.foldLeft(Map[PortRef, Set[PortRef]]()) {
-      case (acc, (src, tgts)) =>
-        tgts.foldLeft(acc) { (acc2, tgt) =>
-          acc2 + (tgt -> (acc2.getOrElse(tgt, Set.empty) + src))
-        }
-    }
-
   def serialize(portRef: PortRef, data: Any): Option[JsValue] =
     graph.nodes(portRef.node).component.outPorts.find(_.id == portRef.port).map { outPort =>
       outPort.asInstanceOf[OutPort[Any]].toJson(data)
@@ -54,7 +41,21 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
   def convertTo(from: PortRef, to: PortRef, data: Any): Option[Any] =
     serialize(from, data).flatMap(deserialize(to, _))
 
-  def startNetwork(): Unit = {
+  def error(msg: String): Unit =
+    error(msg.capitalize, s"Network failed: $msg")
+
+  def error(msg: String, logMsg: String): Unit = {
+    outputActor ! Error(msg)
+    log.error(logMsg)
+    context.stop(self)
+  }
+
+  def startNetwork(): RoutingTable = {
+
+    val routingTable = RoutingTable(graph)
+      .onRouteClosed { (src, tgt) => outputActor ! Disconnect(graph.id, Some(src), tgt) }
+      .onSourceClosed { src => nodeActors(src.node) ! OutPortDisconnected(src.port) }
+      .onTargetClosed { tgt => nodeActors(tgt.node) ! InPortDisconnected(tgt.port) }
 
     // send the initial data packets to node actors and send full [Connect, Data, Disconnect] sequence to `outputActor`
     graph.initials.foreach {
@@ -68,15 +69,13 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
             outputActor ! Disconnect(graph.id, None, tgt)
 
           case None =>
-            outputActor ! Error(s"Type mismatch in initial data for $tgt")
-            log.error(s"Network failed: could not deserialize initial data for $tgt")
-            context.stop(self)
+            error(s"could not deserialize initial data for $tgt")
         }
     }
 
     // send a Connect message to `outputActor` for each edge
-    initialRoutes.foreach {
-      case (src, tgts) => tgts.foreach(outputActor ! Connect(graph.id, Some(src), _))
+    routingTable.routes.foreach {
+      case (src, tgt) => outputActor ! Connect(graph.id, Some(src), tgt)
     }
 
     // send an immediate `InPortDisconnected` to each node actor with an unconnected in port and a `OutPortDisconnected`
@@ -84,36 +83,33 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     graph.nodes.iterator.foreach {
       case (nodeId, node) =>
         node.component.inPorts.foreach { inPort =>
-          if (initialRevRoutes.get(PortRef(nodeId, inPort.id)).forall(_.isEmpty))
+          if (routingTable.reverseRoutes(PortRef(nodeId, inPort.id)).isEmpty)
             nodeActors(nodeId) ! InPortDisconnected(inPort.id)
         }
         node.component.outPorts.foreach { outPort =>
-          if (initialRoutes.get(PortRef(nodeId, outPort.id)).forall(_.isEmpty))
+          if (routingTable.routes(PortRef(nodeId, outPort.id)).isEmpty)
             nodeActors(nodeId) ! OutPortDisconnected(outPort.id)
         }
     }
+
+    routingTable
   }
 
   def withKnownSender(msg: Any)(f: String => Unit): Unit = {
     actorNodeIds.get(sender) match {
       case Some(srcNode) => f(srcNode)
       case None =>
-        outputActor ! Error(s"Internal component error")
-        log.error(s"Network failed: received message $msg by unknown sender ${sender()}")
-        context.stop(self)
+        error("Internal runtime error", s"Network failed: received message $msg by unknown sender ${sender()}")
     }
   }
 
-  def brokerBehavior(
-    activeNodes: Int,
-    routes: Map[PortRef, Set[PortRef]],
-    revRoutes: Map[PortRef, Set[PortRef]]): Actor.Receive = {
+  def brokerBehavior(activeNodes: Int, routingTable: RoutingTable): Actor.Receive = {
 
     case msg @ Outgoing(srcPort, srcData) =>
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
 
-        routes.getOrElse(src, Set.empty).foreach { tgt =>
+        routingTable.routes(src).foreach { tgt =>
           val jsDataOpt = serialize(src, srcData)
           val tgtDataOpt = jsDataOpt.flatMap(deserialize(tgt, _))
 
@@ -124,14 +120,10 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
               outputActor ! Data(graph.id, Some(src), tgt, jsData)
 
             case (None, _) =>
-              outputActor ! Error(s"Type mismatch in message from $src to $tgt")
-              log.error(s"Network failed: could not serialize $srcData (sent by $src) to JSON")
-              context.stop(self)
+              error(s"could not serialize $srcData (sent by $src) to JSON")
 
             case (Some(jsData), None) =>
-              outputActor ! Error(s"Type mismatch in message from $src to $tgt")
-              log.error(s"Network failed: could not deserialize $jsData (sent by $src) to a format supported by $tgt")
-              context.stop(self)
+              error(s"could not deserialize $jsData (sent by $src) to a format supported by $tgt")
           }
         }
       }
@@ -139,93 +131,30 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef) extends Actor with Acto
     case msg @ DisconnectOutPort(srcPort) =>
       withKnownSender(msg) { srcNode =>
         val src = PortRef(srcNode, srcPort)
-
-        // disconnect and remove from the reverse routing table every route originating from the disconnected port
-        val newRevRoutes = routes.getOrElse(src, Set.empty).foldLeft(revRoutes) { (acc, tgt) =>
-          outputActor ! Disconnect(graph.id, Some(src), tgt)
-
-          val newTgtRevRoutes = acc.getOrElse(tgt, Set.empty) - src
-          if (newTgtRevRoutes.isEmpty) {
-            nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
-            acc - tgt
-          } else {
-            acc + (tgt -> newTgtRevRoutes)
-          }
-        }
-        nodeActors(src.node) ! OutPortDisconnected(src.port)
-
         log.info(s"Source port $src disconnected")
-        context.become(brokerBehavior(activeNodes, routes - src, newRevRoutes))
+        context.become(brokerBehavior(activeNodes, routingTable.closeSource(src)))
       }
 
     case msg @ DisconnectInPort(tgtPort) =>
       withKnownSender(msg) { tgtNode =>
         val tgt = PortRef(tgtNode, tgtPort)
-
-        // disconnect and remove from the routing table every route that targeted the disconnected port
-        val newRoutes = revRoutes.getOrElse(tgt, Set.empty).foldLeft(routes) { (acc, src) =>
-          outputActor ! Disconnect(graph.id, Some(src), tgt)
-
-          val newSrcRoutes = acc.getOrElse(src, Set.empty) - tgt
-          if (newSrcRoutes.isEmpty) {
-            nodeActors(src.node) ! OutPortDisconnected(src.port)
-            acc - src
-          } else {
-            acc + (src -> newSrcRoutes)
-          }
-        }
-        nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
-
         log.info(s"Target port $tgt disconnected")
-        context.become(brokerBehavior(activeNodes, newRoutes, revRoutes - tgt))
+        context.become(brokerBehavior(activeNodes, routingTable.closeTarget(tgt)))
       }
 
     case Terminated(ref) =>
       actorNodeIds.get(ref).foreach { node =>
-        val (disconnectedRoutes, updRoutes) = routes.partition(_._1.node == node)
-        val (disconnectedRevRoutes, updRevRoutes) = revRoutes.partition(_._1.node == node)
-
-        val newRoutes = disconnectedRevRoutes.foldLeft(updRoutes) {
-          case (acc, (tgt, srcs)) =>
-            srcs.foldLeft(acc) { (acc2, src) =>
-              outputActor ! Disconnect(graph.id, Some(src), tgt)
-
-              val newSrcRoutes = acc2.getOrElse(src, Set.empty) - tgt
-              if (newSrcRoutes.isEmpty) {
-                nodeActors(src.node) ! OutPortDisconnected(src.port)
-                acc2 - src
-              } else {
-                acc2 + (src -> newSrcRoutes)
-              }
-            }
-        }
-
-        val newRevRoutes = disconnectedRoutes.foldLeft(updRevRoutes) {
-          case (acc, (src, tgts)) =>
-            tgts.foldLeft(acc) { (acc2, tgt) =>
-              outputActor ! Disconnect(graph.id, Some(src), tgt)
-
-              val newTgtRevRoutes = acc.getOrElse(tgt, Set.empty) - src
-              if (newTgtRevRoutes.isEmpty) {
-                nodeActors(tgt.node) ! InPortDisconnected(tgt.port)
-                acc - tgt
-              } else {
-                acc + (tgt -> newTgtRevRoutes)
-              }
-            }
-        }
-
         log.info(s"Node $node terminated")
         if (activeNodes == 1) context.stop(self)
-        else context.become(brokerBehavior(activeNodes - 1, newRoutes, newRevRoutes))
+        else context.become(brokerBehavior(activeNodes - 1, routingTable.closeNode(node)))
       }
 
     case output: Output => outputActor ! output
   }
 
   def receive = {
-    startNetwork()
-    brokerBehavior(nodeActors.size, initialRoutes, initialRevRoutes)
+    val routingTable = startNetwork()
+    brokerBehavior(nodeActors.size, routingTable)
   }
 }
 
