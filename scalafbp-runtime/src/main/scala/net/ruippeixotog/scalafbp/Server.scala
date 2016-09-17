@@ -39,7 +39,7 @@ object Server extends App with WsRuntimeHttpService with RegisterHttpService wit
   val compRegistry = DefaultComponentRegistry
 
   // an object responsible for storing and managing the graph definitions currently in the runtime
-  val graphStore = new GraphStore
+  val graphStore = system.actorOf(Props(new GraphStore))
 
   // actor that receives incoming messages (as `Message` objects) and translates them into actions using the above
   // constructs

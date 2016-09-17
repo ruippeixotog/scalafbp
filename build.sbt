@@ -33,7 +33,8 @@ lazy val runtime = projectAt("scalafbp-runtime").
       "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.8",
       "com.typesafe.akka"             %% "akka-stream"                         % "2.4.8",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
-      "org.clapper"                   %% "classutil"                           % "1.0.12"))
+      "org.clapper"                   %% "classutil"                           % "1.0.12",
+      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"        % "test"))
 
 // -- testkit for components --
 
@@ -76,7 +77,7 @@ lazy val scalafbp = projectAt("scalafbp").
   settings(dockerPackagingSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"   % "runtime"))
+      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"        % "runtime"))
 
 lazy val root = (project in file(".")).
   aggregate(core, testkit, coreComponents, mathComponents, streamComponents, pplComponents, runtime, scalafbp).

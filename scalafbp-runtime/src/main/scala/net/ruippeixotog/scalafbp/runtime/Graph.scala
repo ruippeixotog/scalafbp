@@ -25,5 +25,5 @@ case class PortRef(node: String, port: String) {
   override def toString = s"$node[$port]"
 }
 
-case class Edge(metadata: Map[String, JsValue])
-case class Initial(value: JsValue, metadata: Map[String, JsValue])
+case class Edge(metadata: Map[String, JsValue] = Map.empty)
+case class Initial(value: JsValue, metadata: Map[String, JsValue] = Map.empty)

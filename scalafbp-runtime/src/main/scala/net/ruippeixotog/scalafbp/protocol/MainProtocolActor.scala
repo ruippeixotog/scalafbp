@@ -5,7 +5,7 @@ import akka.actor._
 import net.ruippeixotog.scalafbp.protocol.message._
 import net.ruippeixotog.scalafbp.runtime.{ ComponentRegistry, GraphStore }
 
-class MainProtocolActor(runtimeId: String, secret: String, compRegistry: ComponentRegistry, graphStore: GraphStore)
+class MainProtocolActor(runtimeId: String, secret: String, compRegistry: ComponentRegistry, graphStore: ActorRef)
     extends AbstractProtocolActor[Message] {
 
   val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor(runtimeId)))

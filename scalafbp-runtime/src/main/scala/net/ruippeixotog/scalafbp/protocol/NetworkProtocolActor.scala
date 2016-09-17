@@ -11,9 +11,10 @@ import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
-import net.ruippeixotog.scalafbp.runtime.{ GraphStore, NetworkBroker, NetworkController }
+import net.ruippeixotog.scalafbp.runtime.GraphStore.GraphKey
+import net.ruippeixotog.scalafbp.runtime.{ Graph, GraphStore, NetworkBroker, NetworkController }
 
-class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor[NetworkMessage] {
+class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
   implicit val timeout = Timeout(3.seconds)
   implicit val ec = context.dispatcher
 
@@ -44,39 +45,46 @@ class NetworkProtocolActor(graphStore: GraphStore) extends AbstractProtocolActor
       ref
   }
 
+  def getGraph(id: String) =
+    (graphStore ? GraphStore.Get(GraphKey(id)))
+      .mapTo[GraphStore.Got[Graph]]
+      .map(_.entity)
+
   def pipeStatusToSender(controllerActor: ActorRef, toMessage: NetworkController.Status => NetworkMessage) =
     (controllerActor ? NetworkController.GetStatus).mapTo[NetworkController.Status].map(toMessage).pipeTo(sender())
 
   def receiveMessage = {
     case payload: GetStatus =>
-      graphStore.get(payload.graph) match {
+      val replyTo = sender()
+      getGraph(payload.graph).map {
         case Some(_) => pipeStatusToSender(controllerActorFor(payload.graph), _.toStatusMessage)
-        case None => sender() ! Error(s"Graph ${payload.graph} not found")
+        case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
 
     case payload: Start =>
-      graphStore.get(payload.graph) match {
+      val replyTo = sender()
+      getGraph(payload.graph).map {
         case Some(graph) =>
-          val messageOutputActor = sender()
           val outputActor = proxyActorCache.getOrElseUpdate(
-            messageOutputActor,
-            context.actorOf(Props(new OutputProxyActor(messageOutputActor))))
+            replyTo,
+            context.actorOf(Props(new OutputProxyActor(replyTo))))
 
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Start(graph, outputActor)
           pipeStatusToSender(controllerActor, _.toStartedMessage())
 
-        case None => sender() ! Error(s"Graph ${payload.graph} not found")
+        case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
 
     case payload: Stop =>
-      graphStore.get(payload.graph) match {
+      val replyTo = sender()
+      getGraph(payload.graph).map {
         case Some(_) =>
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Stop
           pipeStatusToSender(controllerActor, _.toStoppedMessage())
 
-        case None => sender() ! Error(s"Graph ${payload.graph} not found")
+        case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
 
     case payload: Debug =>

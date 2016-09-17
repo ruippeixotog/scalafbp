@@ -6,7 +6,7 @@ import net.ruippeixotog.scalafbp.component.DummyComponent
 
 class RoutingTableSpec extends Specification {
 
-  val edgeData = Edge(Map())
+  val edgeData = Edge()
   def ref(node: String, port: String) = PortRef(node, port)
 
   /*
