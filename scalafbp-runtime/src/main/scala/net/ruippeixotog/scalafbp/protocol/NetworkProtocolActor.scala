@@ -50,14 +50,14 @@ class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[N
       .mapTo[GraphStore.Got[Graph]]
       .map(_.entity)
 
-  def pipeStatusToSender(controllerActor: ActorRef, toMessage: NetworkController.Status => NetworkMessage) =
-    (controllerActor ? NetworkController.GetStatus).mapTo[NetworkController.Status].map(toMessage).pipeTo(sender())
+  def pipeStatusTo(controllerActor: ActorRef, to: ActorRef, toMessage: NetworkController.Status => NetworkMessage) =
+    (controllerActor ? NetworkController.GetStatus).mapTo[NetworkController.Status].map(toMessage).pipeTo(to)
 
   def receiveMessage = {
     case payload: GetStatus =>
       val replyTo = sender()
       getGraph(payload.graph).map {
-        case Some(_) => pipeStatusToSender(controllerActorFor(payload.graph), _.toStatusMessage)
+        case Some(_) => pipeStatusTo(controllerActorFor(payload.graph), replyTo, _.toStatusMessage)
         case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
 
@@ -71,7 +71,7 @@ class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[N
 
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Start(graph, outputActor)
-          pipeStatusToSender(controllerActor, _.toStartedMessage())
+          pipeStatusTo(controllerActor, replyTo, _.toStartedMessage())
 
         case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
@@ -82,7 +82,7 @@ class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[N
         case Some(_) =>
           val controllerActor = controllerActorFor(payload.graph)
           controllerActor ! NetworkController.Stop
-          pipeStatusToSender(controllerActor, _.toStoppedMessage())
+          pipeStatusTo(controllerActor, replyTo, _.toStoppedMessage())
 
         case None => replyTo ! Error(s"Graph ${payload.graph} not found")
       }
