@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.runtime
 
 import akka.pattern.ask
 import akka.actor.{ ActorSystem, Props }
-import akka.testkit.TestKit
+import akka.testkit.{ TestKit, TestProbe }
 import akka.util.Timeout
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.SpecificationLike
@@ -176,6 +176,34 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
             node.initials.get(testInitialKey.tgt.port) must beSome(testInitial)
           }
       }.await
+    }
+
+    "allow adding listeners for events of a graph" in new GraphStoreInstance(true, true, true) {
+      val probe = TestProbe()
+
+      val newNode = Node(DummyComponent(1, 1))
+      def f(edge: Edge) = edge.copy(metadata = Map("a" -> JsNull))
+      def f2(edge: Edge) = edge.copy(metadata = Map("b" -> JsNull))
+
+      store ! Watch(testGraphKey.id, probe.ref)
+      store ! Create(missingNodeKey, newNode)
+      probe.expectMsg(Event(Created(missingNodeKey, newNode)))
+      store ! Update(testEdgeKey, f)
+      probe.expectMsg(Event(Updated(testEdgeKey, testEdge, f(testEdge))))
+
+      store ! Unwatch(testGraphKey.id, probe.ref)
+      store ! Update(testEdgeKey, f2)
+      probe.expectNoMsg()
+
+      store ! Watch(testGraphKey.id, probe.ref)
+      store ! Delete(testInitialKey)
+      probe.expectMsg(Event(Deleted(testInitialKey, testInitial)))
+      store ! Delete(testGraphKey)
+      probe.expectMsgPF() { case Event(ev: Deleted[_]) if ev.key == testGraphKey => ok }
+
+      store ! Create(missingGraphKey, Graph(missingGraphKey.id))
+      store ! Delete(missingGraphKey)
+      probe.expectNoMsg()
     }
   }
 }

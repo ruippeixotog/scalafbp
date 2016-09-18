@@ -6,6 +6,7 @@ import scala.concurrent.duration._
 import akka.actor._
 import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
+import com.typesafe.config.Config
 
 import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
@@ -14,9 +15,11 @@ import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
 import net.ruippeixotog.scalafbp.runtime.GraphStore.GraphKey
 import net.ruippeixotog.scalafbp.runtime.{ Graph, GraphStore, NetworkBroker, NetworkController }
 
-class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[NetworkMessage] {
+class NetworkProtocolActor(graphStore: ActorRef, runtimeConfig: Config) extends AbstractProtocolActor[NetworkMessage] {
   implicit val timeout = Timeout(3.seconds)
   implicit val ec = context.dispatcher
+
+  private[this] val isDynamic = runtimeConfig.getBoolean("dynamic-networks")
 
   private[this] class OutputProxyActor(val inner: ActorRef) extends Actor {
     context.watch(inner)
@@ -40,7 +43,9 @@ class NetworkProtocolActor(graphStore: ActorRef) extends AbstractProtocolActor[N
   def controllerActorFor(id: String) = controllerActors.get(id) match {
     case Some(ref) => ref
     case None =>
-      val ref = context.actorOf(Props(new NetworkController(id)), s"g-$id-controller")
+      // TODO this actor is never terminated, as well as the graph store hook
+      val ref = context.actorOf(Props(new NetworkController(id, isDynamic)), s"g-$id-controller")
+      if (isDynamic) graphStore ! GraphStore.Watch(id, ref)
       controllerActors += id -> ref
       ref
   }

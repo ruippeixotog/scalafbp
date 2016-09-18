@@ -26,6 +26,7 @@ object Server extends App with WsRuntimeHttpService with RegisterHttpService wit
 
   val config = ConfigFactory.load.getConfig("scalafbp")
   val registryConfig = config.getConfig("registry")
+  val runtimeConfig = config.getConfig("runtime")
 
   val runtimeId = config.getString("runtime-id")
   val secret = config.getString("secret")
@@ -43,7 +44,8 @@ object Server extends App with WsRuntimeHttpService with RegisterHttpService wit
 
   // actor that receives incoming messages (as `Message` objects) and translates them into actions using the above
   // constructs
-  val protocolActor = system.actorOf(Props(new MainProtocolActor(runtimeId, secret, compRegistry, graphStore)))
+  val protocolActor = system.actorOf(Props(
+    new MainProtocolActor(runtimeId, secret, compRegistry, graphStore, runtimeConfig)))
 
   // all the routes offered by this server
   val routes = registrationRoutes ~ registryRoutes ~ wsRuntimeRoutes ~ uiRoutes

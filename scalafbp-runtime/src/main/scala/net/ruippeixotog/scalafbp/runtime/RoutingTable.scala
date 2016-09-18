@@ -40,13 +40,93 @@ class RoutingTable private (
   def reverseRoutes(tgt: PortRef): Iterable[PortRef] = revRouteMap.getOrElse(tgt, Set.empty)
 
   /**
+    * Opens a new route.
+    *
+    * @param src the source port
+    * @param tgt the target port
+    * @return a new `RoutingTable` with the given route opened.
+    */
+  def openRoute(src: PortRef, tgt: PortRef): RoutingTable = {
+    val newRoutes = routeMap + (src -> (routeMap.getOrElse(src, Set.empty) + tgt))
+    val newRevRoutes = revRouteMap + (tgt -> (routeMap.getOrElse(tgt, Set.empty) + src))
+    copy(routes = newRoutes, revRoutes = newRevRoutes)
+  }
+
+  /**
     * Closes a single route.
     *
     * @param src the source port
     * @param tgt the target port
-    * @return a new `RoutingTable` with the given route closed
+    * @return a new `RoutingTable` with the given route closed.
     */
-  def closeRoute(src: PortRef, tgt: PortRef): RoutingTable = {
+  def closeRoute(src: PortRef, tgt: PortRef): RoutingTable =
+    if (!routeMap.get(src).exists(_.contains(tgt))) this
+    else closeRouteUnchecked(src, tgt)
+
+  /**
+    * Closes all the routes from a source port.
+    *
+    * @param src the source port
+    * @return a new `RoutingTable` with the given source closed.
+    */
+  def closeSource(src: PortRef): RoutingTable =
+    routeMap.getOrElse(src, Set.empty).foldLeft(this)(_.closeRouteUnchecked(src, _))
+
+  /**
+    * Closes all the routes to a target port.
+    *
+    * @param tgt the target port
+    * @return a new `RoutingTable` with the given target closed.
+    */
+  def closeTarget(tgt: PortRef): RoutingTable =
+    revRouteMap.getOrElse(tgt, Set.empty).foldLeft(this)(_.closeRouteUnchecked(_, tgt))
+
+  /**
+    * Closes all the routes to and from a node.
+    *
+    * @param node the node identifier
+    * @return a new `RoutingTable` with the given node closed.
+    */
+  def closeNode(node: String): RoutingTable = {
+    val disconnectedRoutes = routeMap.filter(_._1.node == node)
+    val disconnectedRevRoutes = revRouteMap.filter(_._1.node == node)
+
+    val updTable = disconnectedRoutes.foldLeft(this) {
+      case (acc, (src, tgts)) =>
+        tgts.foldLeft(acc)(_.closeRouteUnchecked(src, _))
+    }
+
+    disconnectedRevRoutes.foldLeft(updTable) {
+      case (acc, (tgt, srcs)) =>
+        srcs.foldLeft(acc)(_.closeRouteUnchecked(_, tgt))
+    }
+  }
+
+  /**
+    * Registers an action to perform when a route is closed.
+    *
+    * @param hook the action to perform when a route is closed
+    * @return a new `RoutingTable` with the given action registered.
+    */
+  def onRouteClosed(hook: (PortRef, PortRef) => Unit): RoutingTable = copy(closedRouteHook = Some(hook))
+
+  /**
+    * Registers an action to perform when a source is closed.
+    *
+    * @param hook the action to perform when a source is closed
+    * @return a new `RoutingTable` with the given action registered.
+    */
+  def onSourceClosed(hook: PortRef => Unit): RoutingTable = copy(closedSourceHook = Some(hook))
+
+  /**
+    * Registers an action to perform when a target is closed.
+    *
+    * @param hook the action to perform when a target is closed
+    * @return a new `RoutingTable` with the given action registered.
+    */
+  def onTargetClosed(hook: PortRef => Unit): RoutingTable = copy(closedTargetHook = Some(hook))
+
+  private def closeRouteUnchecked(src: PortRef, tgt: PortRef): RoutingTable = {
     closedRouteHook.foreach(_(src, tgt))
 
     val newSrcRoutes = routeMap.getOrElse(src, Set.empty) - tgt
@@ -67,69 +147,6 @@ class RoutingTable private (
 
     copy(routes = newRoutes, revRoutes = newRevRoutes)
   }
-
-  /**
-    * Closes all the routes from a source port.
-    *
-    * @param src the source port
-    * @return a new `RoutingTable` with the given source closed
-    */
-  def closeSource(src: PortRef): RoutingTable =
-    routeMap.getOrElse(src, Set.empty).foldLeft(this)(_.closeRoute(src, _))
-
-  /**
-    * Closes all the routes to a target port.
-    *
-    * @param tgt the target port
-    * @return a new `RoutingTable` with the given target closed
-    */
-  def closeTarget(tgt: PortRef): RoutingTable =
-    revRouteMap.getOrElse(tgt, Set.empty).foldLeft(this)(_.closeRoute(_, tgt))
-
-  /**
-    * Closes all the routes to and from a node.
-    *
-    * @param node the node identifier
-    * @return a new `RoutingTable` with the given node closed
-    */
-  def closeNode(node: String): RoutingTable = {
-    val disconnectedRoutes = routeMap.filter(_._1.node == node)
-    val disconnectedRevRoutes = revRouteMap.filter(_._1.node == node)
-
-    val updTable = disconnectedRoutes.foldLeft(this) {
-      case (acc, (src, tgts)) =>
-        tgts.foldLeft(acc)(_.closeRoute(src, _))
-    }
-
-    disconnectedRevRoutes.foldLeft(updTable) {
-      case (acc, (tgt, srcs)) =>
-        srcs.foldLeft(acc)(_.closeRoute(_, tgt))
-    }
-  }
-
-  /**
-    * Registers an action to perform when a route is closed.
-    *
-    * @param hook the action to perform when a route is closed
-    * @return a new `RoutingTable` with the given action registered
-    */
-  def onRouteClosed(hook: (PortRef, PortRef) => Unit): RoutingTable = copy(closedRouteHook = Some(hook))
-
-  /**
-    * Registers an action to perform when a source is closed.
-    *
-    * @param hook the action to perform when a source is closed
-    * @return a new `RoutingTable` with the given action registered
-    */
-  def onSourceClosed(hook: PortRef => Unit): RoutingTable = copy(closedSourceHook = Some(hook))
-
-  /**
-    * Registers an action to perform when a target is closed.
-    *
-    * @param hook the action to perform when a target is closed
-    * @return a new `RoutingTable` with the given action registered
-    */
-  def onTargetClosed(hook: PortRef => Unit): RoutingTable = copy(closedTargetHook = Some(hook))
 
   private[this] def copy(
     routes: Map[PortRef, Set[PortRef]] = routeMap,

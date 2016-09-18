@@ -4,13 +4,14 @@ import akka.actor.{ Status => _, _ }
 
 import net.ruippeixotog.scalafbp.runtime.NetworkController._
 
-class NetworkController(graphId: String) extends Actor with ActorLogging with Stash {
+class NetworkController(graphId: String, dynamic: Boolean) extends Actor with ActorLogging with Stash {
 
   def notRunningBehavior(stopped: Boolean): Receive = {
     case Start(graph, outputActor) =>
       log.info(s"Started network of graph $graph")
       val brokerActor = context.actorOf(
-        Props(new NetworkBroker(graph, outputActor)).withDispatcher("akka.fbp-network-dispatcher"), "broker")
+        Props(new NetworkBroker(graph, outputActor, dynamic)).withDispatcher("akka.fbp-network-dispatcher"),
+        "broker")
 
       context.watch(brokerActor)
       context.watch(outputActor)
@@ -23,6 +24,9 @@ class NetworkController(graphId: String) extends Actor with ActorLogging with St
     brokerActor: ActorRef,
     outputActor: ActorRef,
     startTime: Long = System.currentTimeMillis()): Receive = {
+
+    case msg @ GraphStore.Event(_) =>
+      brokerActor ! msg
 
     case GetStatus =>
       sender() ! Status(graphId, true, true, Some((System.currentTimeMillis() - startTime) / 1000))

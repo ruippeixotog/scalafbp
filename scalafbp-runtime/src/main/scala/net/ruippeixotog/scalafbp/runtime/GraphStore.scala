@@ -2,7 +2,7 @@ package net.ruippeixotog.scalafbp.runtime
 
 import scala.util.{ Failure, Success, Try }
 
-import akka.actor.Actor
+import akka.actor.{ Actor, ActorRef }
 import akka.event.slf4j.SLF4JLogging
 import monocle.function.At.at
 import monocle.function.all._
@@ -14,6 +14,7 @@ import net.ruippeixotog.scalafbp.runtime.GraphStore._
 
 class GraphStore extends Actor with SLF4JLogging {
   private[this] var store: Store = Map[String, Graph]()
+  private[this] var listeners = Map[String, Set[ActorRef]]().withDefaultValue(Set())
 
   def handleRequest[A](req: Request[A], store: Store): (Response[A], Store) = {
     (req, req.key.lens.getOption(store)) match {
@@ -51,11 +52,15 @@ class GraphStore extends Actor with SLF4JLogging {
       Try(handleRequest(req, store)) match {
         case Success((res, newGraphs)) =>
           store = newGraphs
+          listeners(req.key.id).foreach(_ ! Event(res))
           sender() ! res
 
         case Failure(ex) =>
           sender() ! Error(ex)
       }
+
+    case Watch(id, listener) => listeners += id -> (listeners(id) + listener)
+    case Unwatch(id, listener) => listeners += id -> (listeners(id) - listener)
   }
 }
 
@@ -84,6 +89,7 @@ object GraphStore {
     graphLensOpt(id) ^|-> GenLens[Graph](_.nodes) ^|->> each ^|-> GenLens[Node](_.edges) ^|->> each
 
   sealed trait Key[A] {
+    def id: String
     def lens: Optional[Store, Option[A]]
   }
 
@@ -120,4 +126,8 @@ object GraphStore {
   case class Renamed(key: NodeKey, toId: String) extends Response[Node]
   case class Deleted[A](key: Key[A], entity: A) extends Response[A]
   case class Error[A](ex: Throwable) extends Response[A]
+
+  case class Watch(id: String, listener: ActorRef)
+  case class Unwatch(id: String, listener: ActorRef)
+  case class Event[A](res: Response[A])
 }
