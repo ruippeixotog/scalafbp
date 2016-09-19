@@ -53,6 +53,13 @@ class RoutingTableSpec extends Specification {
       newTable.routes must not(contain(ref("n1", "out1") -> ref("n2", "in1")))
     }
 
+    "be updated correctly when a new route is opened" in {
+      val newTable = table.openRoute(ref("n2", "out2"), ref("n3", "in2"))
+      newTable.routes(ref("n2", "out2")) mustEqual List(ref("n3", "in2"))
+      newTable.reverseRoutes(ref("n3", "in2")) mustEqual List(ref("n2", "out2"))
+      newTable.routes must contain(ref("n2", "out2") -> ref("n3", "in2"))
+    }
+
     "be updated correctly when an out port is closed" in {
       val newTable = table.closeSource(ref("n1", "out1"))
       newTable.routes(ref("n1", "out1")) mustEqual Nil
