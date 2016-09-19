@@ -43,8 +43,9 @@ class NetworkProtocolActor(graphStore: ActorRef, runtimeConfig: Config) extends 
   def controllerActorFor(id: String) = controllerActors.get(id) match {
     case Some(ref) => ref
     case None =>
+      val sanitizedId = id.replaceAll("[^0-9A-Za-z]", "_")
       // TODO this actor is never terminated, as well as the graph store hook
-      val ref = context.actorOf(Props(new NetworkController(id, isDynamic)), s"g-$id-controller")
+      val ref = context.actorOf(Props(new NetworkController(id, isDynamic)), s"g-$sanitizedId-controller")
       if (isDynamic) graphStore ! GraphStore.Watch(id, ref)
       controllerActors += id -> ref
       ref
