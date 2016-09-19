@@ -141,6 +141,16 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Update(noPathEdgeKey1, f)) must beStoreError.await
     }
 
+    "update correctly the edges when a node is renamed" in new GraphStoreInstance(true, true) {
+      val renamedEdgeKey = testEdgeKey.copy(
+        src = testEdgeKey.src.copy(node = missingNodeKey.nodeId),
+        tgt = testEdgeKey.tgt.copy(node = missingNodeKey.nodeId))
+
+      (store ? Rename(testNodeKey, missingNodeKey.nodeId)) must beEqualTo(Renamed(testNodeKey, missingNodeKey.nodeId)).await
+      (store ? Get(testEdgeKey)) must beStoreError.await
+      (store ? Get(renamedEdgeKey)) must beEqualTo(Got(renamedEdgeKey, Some(testEdge))).await
+    }
+
     "allow deleting existing edges" in new GraphStoreInstance(true, true) {
       (store ? Delete(testEdgeKey)) must beEqualTo(Deleted(testEdgeKey, testEdge)).await
       (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, None)).await
