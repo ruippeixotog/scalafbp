@@ -91,6 +91,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Create(missingNodeKey, newNode)) must beEqualTo(Created(missingNodeKey, newNode)).await
       (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(newNode))).await
       (store ? Get(noPathNodeKey)) must beStoreError.await
+      (store ? Create(missingNodeKey, newNode)) must beStoreError.await
       (store ? Create(noPathNodeKey, newNode)) must beStoreError.await
     }
 
@@ -101,6 +102,14 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, Some(f(testNode)))).await
       (store ? Update(missingNodeKey, f)) must beStoreError.await
       (store ? Update(noPathNodeKey, f)) must beStoreError.await
+    }
+
+    "allow renaming existing nodes" in new GraphStoreInstance(true) {
+      (store ? Rename(testNodeKey, missingNodeKey.nodeId)) must beEqualTo(Renamed(testNodeKey, missingNodeKey.nodeId)).await
+      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, None)).await
+      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(testNode))).await
+      (store ? Rename(testNodeKey, "any")) must beStoreError.await
+      (store ? Rename(noPathNodeKey, "any")) must beStoreError.await
     }
 
     "allow deleting existing nodes" in new GraphStoreInstance(true) {
