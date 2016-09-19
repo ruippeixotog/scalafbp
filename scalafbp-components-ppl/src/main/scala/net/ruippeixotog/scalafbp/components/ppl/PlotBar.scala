@@ -26,8 +26,10 @@ case object PlotBar extends Component {
 
     val chart = emptyPlotBar()
     val controls = chart.showControls
+
     controls.show()
-    controls.onHide(context.stop(self))
+    controls.onHide(Option(context).foreach(_.stop(self)))
+    override def postStop() = controls.dispose()
 
     titlePort.stream.foreach(chart.title = _)
 

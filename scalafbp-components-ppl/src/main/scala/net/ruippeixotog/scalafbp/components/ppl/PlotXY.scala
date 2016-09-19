@@ -26,8 +26,10 @@ case object PlotXY extends Component {
 
     val chart = emptyPlotXY()
     val controls = chart.showControls
+
     controls.show()
-    controls.onHide(context.stop(self))
+    controls.onHide(Option(context).foreach(_.stop(self)))
+    override def postStop() = controls.dispose()
 
     titlePort.stream.foreach(chart.title = _)
 
