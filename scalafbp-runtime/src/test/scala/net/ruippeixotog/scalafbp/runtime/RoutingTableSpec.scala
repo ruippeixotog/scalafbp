@@ -31,15 +31,15 @@ class RoutingTableSpec extends Specification {
   "A RoutingTable" should {
 
     "be correctly built off a graph" in {
-      table.routes(ref("n1", "out1")) mustEqual List(ref("n2", "in1"), ref("n3", "in1"))
-      table.routes(ref("n2", "out1")) mustEqual List(ref("n4", "in1"))
-      table.routes(ref("n2", "out2")) mustEqual Nil
+      table.routes(ref("n1", "out1")).toSet mustEqual Set(ref("n2", "in1"), ref("n3", "in1"))
+      table.routes(ref("n2", "out1")).toSet mustEqual Set(ref("n4", "in1"))
+      table.routes(ref("n2", "out2")).toSet mustEqual Set.empty
 
-      table.reverseRoutes(ref("n2", "in1")) mustEqual List(ref("n1", "out1"))
-      table.reverseRoutes(ref("n4", "in1")) mustEqual List(ref("n2", "out1"), ref("n3", "out1"))
-      table.reverseRoutes(ref("n3", "in2")) mustEqual Nil
+      table.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set(ref("n1", "out1"))
+      table.reverseRoutes(ref("n4", "in1")).toSet mustEqual Set(ref("n2", "out1"), ref("n3", "out1"))
+      table.reverseRoutes(ref("n3", "in2")).toSet mustEqual Set.empty
 
-      table.routes mustEqual List(
+      table.routes.toSet mustEqual Set(
         ref("n1", "out1") -> ref("n2", "in1"),
         ref("n1", "out1") -> ref("n3", "in1"),
         ref("n2", "out1") -> ref("n4", "in1"),
@@ -48,43 +48,48 @@ class RoutingTableSpec extends Specification {
 
     "be updated correctly when a route is closed" in {
       val newTable = table.closeRoute(ref("n1", "out1"), ref("n2", "in1"))
-      newTable.routes(ref("n1", "out1")) mustEqual List(ref("n3", "in1"))
-      newTable.reverseRoutes(ref("n2", "in1")) mustEqual Nil
+      newTable.routes(ref("n1", "out1")).toSet mustEqual Set(ref("n3", "in1"))
+      newTable.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set.empty
       newTable.routes must not(contain(ref("n1", "out1") -> ref("n2", "in1")))
     }
 
     "be updated correctly when a new route is opened" in {
       val newTable = table.openRoute(ref("n2", "out2"), ref("n3", "in2"))
-      newTable.routes(ref("n2", "out2")) mustEqual List(ref("n3", "in2"))
-      newTable.reverseRoutes(ref("n3", "in2")) mustEqual List(ref("n2", "out2"))
+      newTable.routes(ref("n2", "out2")).toSet mustEqual Set(ref("n3", "in2"))
+      newTable.reverseRoutes(ref("n3", "in2")).toSet mustEqual Set(ref("n2", "out2"))
       newTable.routes must contain(ref("n2", "out2") -> ref("n3", "in2"))
+
+      val newTable2 = table.openRoute(ref("n2", "out1"), ref("n3", "in1"))
+      newTable2.routes(ref("n2", "out1")).toSet mustEqual Set(ref("n3", "in1"), ref("n4", "in1"))
+      newTable2.reverseRoutes(ref("n3", "in1")).toSet mustEqual Set(ref("n1", "out1"), ref("n2", "out1"))
+      newTable2.routes must contain(ref("n2", "out1") -> ref("n3", "in1"))
     }
 
     "be updated correctly when an out port is closed" in {
       val newTable = table.closeSource(ref("n1", "out1"))
-      newTable.routes(ref("n1", "out1")) mustEqual Nil
-      newTable.reverseRoutes(ref("n2", "in1")) mustEqual Nil
-      newTable.reverseRoutes(ref("n3", "in1")) mustEqual Nil
-      newTable.routes mustEqual List(
+      newTable.routes(ref("n1", "out1")).toSet mustEqual Set.empty
+      newTable.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set.empty
+      newTable.reverseRoutes(ref("n3", "in1")).toSet mustEqual Set.empty
+      newTable.routes.toSet mustEqual Set(
         ref("n2", "out1") -> ref("n4", "in1"),
         ref("n3", "out1") -> ref("n4", "in1"))
     }
 
     "be updated correctly when an in port is closed" in {
       val newTable = table.closeTarget(ref("n4", "in1"))
-      newTable.routes(ref("n2", "out1")) mustEqual Nil
-      newTable.routes(ref("n3", "out1")) mustEqual Nil
-      newTable.reverseRoutes(ref("n4", "in1")) mustEqual Nil
-      newTable.routes mustEqual List(
+      newTable.routes(ref("n2", "out1")).toSet mustEqual Set.empty
+      newTable.routes(ref("n3", "out1")).toSet mustEqual Set.empty
+      newTable.reverseRoutes(ref("n4", "in1")).toSet mustEqual Set.empty
+      newTable.routes.toSet mustEqual Set(
         ref("n1", "out1") -> ref("n2", "in1"),
         ref("n1", "out1") -> ref("n3", "in1"))
     }
 
     "be updated correctly when a node is closed" in {
       val newTable = table.closeNode("n2")
-      newTable.routes(ref("n2", "out1")) mustEqual Nil
-      newTable.reverseRoutes(ref("n2", "in1")) mustEqual Nil
-      newTable.routes mustEqual List(
+      newTable.routes(ref("n2", "out1")).toSet mustEqual Set.empty
+      newTable.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set.empty
+      newTable.routes.toSet mustEqual Set(
         ref("n1", "out1") -> ref("n3", "in1"),
         ref("n3", "out1") -> ref("n4", "in1"))
     }

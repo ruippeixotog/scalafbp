@@ -48,7 +48,7 @@ class RoutingTable private (
     */
   def openRoute(src: PortRef, tgt: PortRef): RoutingTable = {
     val newRoutes = routeMap + (src -> (routeMap.getOrElse(src, Set.empty) + tgt))
-    val newRevRoutes = revRouteMap + (tgt -> (routeMap.getOrElse(tgt, Set.empty) + src))
+    val newRevRoutes = revRouteMap + (tgt -> (revRouteMap.getOrElse(tgt, Set.empty) + src))
     copy(routes = newRoutes, revRoutes = newRevRoutes)
   }
 
