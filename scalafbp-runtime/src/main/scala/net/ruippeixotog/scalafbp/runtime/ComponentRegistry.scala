@@ -31,7 +31,7 @@ class ClassFinderComponentRegistry extends ComponentRegistry with SLF4JLogging {
     ClassFinder(new File(".") :: realClasspath.toList ::: ClassFinder.classpath)
   }
 
-  def newInstance(className: String): Option[Component] = Try {
+  private[this] def newInstance(className: String): Option[Component] = Try {
     if (className.endsWith("$")) {
       m.reflectModule(m.staticModule(className.init)).instance.asInstanceOf[Component]
     } else {
@@ -42,8 +42,22 @@ class ClassFinderComponentRegistry extends ComponentRegistry with SLF4JLogging {
   log.info("Finding component implementations...")
 
   private[this] val componentMap: Map[String, Component] = {
-    val subclassInfo = ClassFinder.concreteSubclasses(classOf[Component], finder.getClasses)
-    subclassInfo.flatMap { cinfo => newInstance(cinfo.name) }.map { comp => comp.name -> comp }.toMap
+
+    def findConcreteSubclasses(supers: Set[String], found: Set[String] = Set.empty): Set[String] = {
+      if (supers.isEmpty) found
+      else {
+        val candidates = finder.getClasses.filter { info =>
+          supers.contains(info.superClassName) || info.interfaces.exists(supers.contains)
+        }
+        val newFound = candidates.filter { info => info.isConcrete && info.isPublic }.map(_.name)
+        val newSupers = candidates.filterNot(_.isFinal).map(_.name)
+
+        findConcreteSubclasses(newSupers.toSet, found ++ newFound)
+      }
+    }
+
+    val componentClasses = findConcreteSubclasses(Set(classOf[Component].getName))
+    componentClasses.flatMap(newInstance).map { comp => comp.name -> comp }.toMap
   }
 
   log.info(s"Found ${componentMap.size} component types")
