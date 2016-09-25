@@ -76,6 +76,15 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Update(missingGraphKey, f)) must beStoreError.await
     }
 
+    "allow upserting graphs" in new GraphStoreInstance {
+      val newGraph = Graph(missingGraphKey.id)
+
+      (store ? Upsert(missingGraphKey, newGraph)) must beEqualTo(Created(missingGraphKey, newGraph)).await
+      (store ? Get(missingGraphKey)) must beEqualTo(Got(missingGraphKey, Some(newGraph))).await
+      (store ? Upsert(testGraphKey, newGraph)) must beEqualTo(Updated(testGraphKey, testGraph, newGraph)).await
+      (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, Some(newGraph))).await
+    }
+
     "allow deleting existing graphs" in new GraphStoreInstance {
       (store ? Delete(testGraphKey)) must beEqualTo(Deleted(testGraphKey, testGraph)).await
       (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, None)).await
@@ -104,6 +113,16 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Update(noPathNodeKey, f)) must beStoreError.await
     }
 
+    "allow upserting nodes on existing graphs" in new GraphStoreInstance(true) {
+      val newNode = Node(DummyComponent(1, 1))
+
+      (store ? Upsert(missingNodeKey, newNode)) must beEqualTo(Created(missingNodeKey, newNode)).await
+      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(newNode))).await
+      (store ? Upsert(testNodeKey, newNode)) must beEqualTo(Updated(testNodeKey, testNode, newNode)).await
+      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, Some(newNode))).await
+      (store ? Upsert(noPathNodeKey, newNode)) must beStoreError.await
+    }
+
     "allow renaming existing nodes" in new GraphStoreInstance(true) {
       (store ? Rename(testNodeKey, missingNodeKey.nodeId)) must beEqualTo(Renamed(testNodeKey, missingNodeKey.nodeId)).await
       (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, None)).await
@@ -120,7 +139,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
     }
 
     "allow creating and retrieving edges on existing nodes" in new GraphStoreInstance(true, true) {
-      val newEdge = Edge()
+      val newEdge = Edge(Map("a" -> JsTrue))
 
       (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(testEdge))).await
       (store ? Get(missingEdgeKey)) must beEqualTo(Got(missingEdgeKey, None)).await
@@ -139,6 +158,17 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(f(testEdge)))).await
       (store ? Update(missingEdgeKey, f)) must beStoreError.await
       (store ? Update(noPathEdgeKey1, f)) must beStoreError.await
+    }
+
+    "allow upserting edges on existing nodes" in new GraphStoreInstance(true, true) {
+      val newEdge = Edge(Map("a" -> JsTrue))
+
+      (store ? Upsert(missingEdgeKey, newEdge)) must beEqualTo(Created(missingEdgeKey, newEdge)).await
+      (store ? Get(missingEdgeKey)) must beEqualTo(Got(missingEdgeKey, Some(newEdge))).await
+      (store ? Upsert(testEdgeKey, newEdge)) must beEqualTo(Updated(testEdgeKey, testEdge, newEdge)).await
+      (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(newEdge))).await
+      (store ? Upsert(noPathEdgeKey1, newEdge)) must beStoreError.await
+      (store ? Upsert(noPathEdgeKey2, newEdge)) must beStoreError.await
     }
 
     "update correctly the edges when a node is renamed" in new GraphStoreInstance(true, true) {
@@ -178,6 +208,17 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, Some(f(testInitial)))).await
       (store ? Update(missingInitialKey, f)) must beStoreError.await
       (store ? Update(noPathInitialKey1, f)) must beStoreError.await
+    }
+
+    "allow upserting initial values on existing nodes" in new GraphStoreInstance(true, withInitial = true) {
+      val newInitial = Initial(JsNumber(1))
+
+      (store ? Upsert(missingInitialKey, newInitial)) must beEqualTo(Created(missingInitialKey, newInitial)).await
+      (store ? Get(missingInitialKey)) must beEqualTo(Got(missingInitialKey, Some(newInitial))).await
+      (store ? Upsert(testInitialKey, newInitial)) must beEqualTo(Updated(testInitialKey, testInitial, newInitial)).await
+      (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, Some(newInitial))).await
+      (store ? Upsert(noPathInitialKey1, newInitial)) must beStoreError.await
+      (store ? Upsert(noPathInitialKey2, newInitial)) must beStoreError.await
     }
 
     "allow deleting existing initial values" in new GraphStoreInstance(true, withInitial = true) {

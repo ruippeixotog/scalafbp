@@ -42,14 +42,14 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
     case payload: Clear =>
       val key = GraphKey(payload.id)
       val graph = runtime.Graph(payload.id)
-      askStore(GraphStore.Create(key, graph)).map(_ => payload)
+      askStore(GraphStore.Upsert(key, graph)).map(_ => payload)
 
     case payload: AddNode =>
       compRegistry.get(payload.component) match {
         case Some(comp) =>
           val key = NodeKey(payload.graph, payload.id)
           val node = runtime.Node(comp, payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
-          askStore(GraphStore.Create(key, node)).map(_ => payload)
+          askStore(GraphStore.Upsert(key, node)).map(_ => payload)
 
         case None =>
           Future.failed(new NoSuchElementException(s"Unknown component ${payload.component}"))
@@ -74,7 +74,7 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
     case payload: AddEdge =>
       val key = EdgeKey(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef)
       val edge = runtime.Edge(payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
-      askStore(GraphStore.Create(key, edge)).map(_ => payload)
+      askStore(GraphStore.Upsert(key, edge)).map(_ => payload)
 
     case payload: RemoveEdge =>
       val key = EdgeKey(payload.graph, payload.src.toPortRef, payload.tgt.toPortRef)
@@ -91,7 +91,7 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
     case payload: AddInitial =>
       val key = InitialKey(payload.graph, payload.tgt.toPortRef)
       val initial = runtime.Initial(payload.src.data, payload.metadata.getOrElse(Map()).filter(_._2 != JsNull))
-      askStore(GraphStore.Create(key, initial)).map(_ => payload)
+      askStore(GraphStore.Upsert(key, initial)).map(_ => payload)
 
     case payload: RemoveInitial =>
       val key = InitialKey(payload.graph, payload.tgt.toPortRef)

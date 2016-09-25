@@ -31,6 +31,13 @@ class GraphStore extends Actor with SLF4JLogging {
 
       case (Update(key, _), _) => throw new NoSuchElementException(s"Can't update nonexistent $key")
 
+      case (Upsert(key, entity), Some(None)) => (Created(key, entity), key.lens.set(Some(entity))(store))
+      case (Upsert(key, entity), Some(Some(oldEntity))) =>
+        (Updated(key, oldEntity, entity), key.lens.set(Some(entity))(store))
+
+      case (Upsert(key, _), None) =>
+        throw new NoSuchElementException(s"Can't create or update $key on a nonexistent path")
+
       case (Rename(from, toId), Some(Some(node))) =>
         val newStore = nodeLens(from.id, toId).set(Some(node))
           .andThen(from.lens.set(None))
@@ -116,6 +123,7 @@ object GraphStore {
   case class Get[A](key: Key[A]) extends Request[A]
   case class Create[A](key: Key[A], entity: A) extends Request[A]
   case class Update[A](key: Key[A], f: A => A) extends Request[A]
+  case class Upsert[A](key: Key[A], entity: A) extends Request[A]
   case class Rename(key: NodeKey, toId: String) extends Request[Node]
   case class Delete[A](key: Key[A]) extends Request[A]
 
