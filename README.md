@@ -1,4 +1,4 @@
-# ScalaFBP
+# ScalaFBP [![Build Status](https://travis-ci.org/ruippeixotog/scalafbp.svg?branch=master)](https://travis-ci.org/ruippeixotog/scalafbp) [![Coverage Status](https://coveralls.io/repos/github/ruippeixotog/scalafbp/badge.svg?branch=master)](https://coveralls.io/github/ruippeixotog/scalafbp?branch=master)
 
 A [Flow-based Programming](https://en.wikipedia.org/wiki/Flow-based_programming) engine written in Scala. The communication with clients uses the [FBP Protocol](https://flowbased.github.io/fbp-protocol), enabling it to be used with the [NoFlo UI](https://github.com/noflo/noflo-ui).
 
