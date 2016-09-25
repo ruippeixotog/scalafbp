@@ -94,31 +94,61 @@ class RoutingTableSpec extends Specification {
         ref("n3", "out1") -> ref("n4", "in1"))
     }
 
-    "call hooks when routes, sources or targets are closed" in {
-      var closedRoutes = Set.empty[(PortRef, PortRef)]
+    "be updated correctly when all routes are closed" in {
+      val newTable = table.closeAll
+      newTable.routes(ref("n2", "out1")).toSet mustEqual Set.empty
+      newTable.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set.empty
+      newTable.routes.toSet mustEqual Set.empty
+    }
+
+    "be updated correctly when a new graph is loaded" in {
+      val newGraph = Graph("test1", Map(
+        "a" -> Node(DummyComponent(0, 1), edges = Map("out1" -> Map(ref("b", "in1") -> edgeData))),
+        "b" -> Node(DummyComponent(1, 0))))
+
+      val newTable = table.loadGraph(newGraph)
+      newTable.routes(ref("a", "out1")).toSet mustEqual Set(ref("b", "in1"))
+      newTable.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set.empty
+      newTable.routes.toSet mustEqual Set(ref("a", "out1") -> ref("b", "in1"))
+    }
+
+    "call hooks when routes, sources or targets are opened or closed" in {
       var closedSources = Set.empty[PortRef]
       var closedTargets = Set.empty[PortRef]
+      var openedRoutes = Set.empty[(PortRef, PortRef)]
+      var closedRoutes = Set.empty[(PortRef, PortRef)]
 
       def clearHooks() = {
-        closedSources = Set.empty
         closedTargets = Set.empty
         closedRoutes = Set.empty
+        openedRoutes = Set.empty
+        closedSources = Set.empty
       }
 
       val newTable = table
-        .onRouteClosed { (src, tgt) => closedRoutes += ((src, tgt)) }
         .onSourceClosed(closedSources += _)
         .onTargetClosed(closedTargets += _)
+        .onRouteOpened { (src, tgt) => openedRoutes += ((src, tgt)) }
+        .onRouteClosed { (src, tgt) => closedRoutes += ((src, tgt)) }
 
+      newTable.openRoute(ref("n2", "out2"), ref("n3", "in2"))
+      closedRoutes mustEqual Nil
+      closedTargets mustEqual Nil
+      openedRoutes mustEqual Set(ref("n2", "out2") -> ref("n3", "in2"))
+      closedRoutes mustEqual Nil
+
+      clearHooks()
       newTable.closeRoute(ref("n2", "out1"), ref("n4", "in1"))
       closedSources mustEqual Set(ref("n2", "out1"))
       closedTargets mustEqual Nil
+      openedRoutes mustEqual Nil
       closedRoutes mustEqual Set(ref("n2", "out1") -> ref("n4", "in1"))
 
       clearHooks()
       newTable.closeSource(ref("n1", "out1"))
       closedSources mustEqual Set(ref("n1", "out1"))
       closedTargets mustEqual Set(ref("n2", "in1"), ref("n3", "in1"))
+      openedRoutes mustEqual Nil
       closedRoutes mustEqual Set(
         ref("n1", "out1") -> ref("n2", "in1"),
         ref("n1", "out1") -> ref("n3", "in1"))
@@ -127,14 +157,27 @@ class RoutingTableSpec extends Specification {
       newTable.closeTarget(ref("n2", "in1"))
       closedSources mustEqual Nil
       closedTargets mustEqual Set(ref("n2", "in1"))
+      openedRoutes mustEqual Nil
       closedRoutes mustEqual Set(ref("n1", "out1") -> ref("n2", "in1"))
 
       clearHooks()
       newTable.closeNode("n3")
       closedSources mustEqual Set(ref("n3", "out1"))
       closedTargets mustEqual Set(ref("n3", "in1"))
+      openedRoutes mustEqual Nil
       closedRoutes mustEqual Set(
         ref("n1", "out1") -> ref("n3", "in1"),
+        ref("n3", "out1") -> ref("n4", "in1"))
+
+      clearHooks()
+      newTable.closeAll
+      closedSources mustEqual Set(ref("n1", "out1"), ref("n2", "out1"), ref("n3", "out1"))
+      closedTargets mustEqual Set(ref("n2", "in1"), ref("n3", "in1"), ref("n4", "in1"))
+      openedRoutes mustEqual Nil
+      closedRoutes mustEqual Set(
+        ref("n1", "out1") -> ref("n2", "in1"),
+        ref("n1", "out1") -> ref("n3", "in1"),
+        ref("n2", "out1") -> ref("n4", "in1"),
         ref("n3", "out1") -> ref("n4", "in1"))
     }
   }

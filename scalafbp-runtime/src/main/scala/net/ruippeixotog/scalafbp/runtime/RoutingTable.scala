@@ -12,6 +12,7 @@ package net.ruippeixotog.scalafbp.runtime
 class RoutingTable private (
     routeMap: Map[PortRef, Set[PortRef]],
     revRouteMap: Map[PortRef, Set[PortRef]],
+    openedRouteHook: Option[(PortRef, PortRef) => Unit],
     closedRouteHook: Option[(PortRef, PortRef) => Unit],
     closedSourceHook: Option[PortRef => Unit],
     closedTargetHook: Option[PortRef => Unit]) {
@@ -46,11 +47,9 @@ class RoutingTable private (
     * @param tgt the target port
     * @return a new `RoutingTable` with the given route opened.
     */
-  def openRoute(src: PortRef, tgt: PortRef): RoutingTable = {
-    val newRoutes = routeMap + (src -> (routeMap.getOrElse(src, Set.empty) + tgt))
-    val newRevRoutes = revRouteMap + (tgt -> (revRouteMap.getOrElse(tgt, Set.empty) + src))
-    copy(routes = newRoutes, revRoutes = newRevRoutes)
-  }
+  def openRoute(src: PortRef, tgt: PortRef): RoutingTable =
+    if (routeMap.get(src).exists(_.contains(tgt))) this
+    else openRouteUnchecked(src, tgt)
 
   /**
     * Closes a single route.
@@ -103,6 +102,52 @@ class RoutingTable private (
   }
 
   /**
+    * Closes all routes in this table.
+    *
+    * @return a new `RoutingTable` will all routes closed.
+    */
+  def closeAll: RoutingTable =
+    routes.foldLeft(this) { case (acc, (src, tgt)) => acc.closeRouteUnchecked(src, tgt) }
+
+  /**
+    * Loads a graph into this table. All routes currently in this table are closed before the new routes are opened.
+    *
+    * @param graph the graph to load into this table.
+    * @return a new `RoutingTable` with the given graph loaded.
+    */
+  def loadGraph(graph: Graph): RoutingTable = {
+    val newGraph = graph.edges.foldLeft(closeAll) {
+      case (acc, (src, tgts)) =>
+        tgts.keys.foldLeft(acc) { (acc2, tgt) => acc2.openRouteUnchecked(src, tgt) }
+    }
+
+    graph.nodes.foreach {
+      case (nodeId, node) =>
+        closedTargetHook.foreach { hook =>
+          node.component.inPorts.foreach { inPort =>
+            val tgt = PortRef(nodeId, inPort.id)
+            if (newGraph.reverseRoutes(tgt).isEmpty) hook(tgt)
+          }
+        }
+        closedSourceHook.foreach { hook =>
+          node.component.outPorts.foreach { outPort =>
+            val src = PortRef(nodeId, outPort.id)
+            if (newGraph.routes(src).isEmpty) hook(src)
+          }
+        }
+    }
+    newGraph
+  }
+
+  /**
+    * Registers an action to perform when a route is opened.
+    *
+    * @param hook the action to perform when a route is opened
+    * @return a new `RoutingTable` with the given action registered.
+    */
+  def onRouteOpened(hook: (PortRef, PortRef) => Unit): RoutingTable = copy(openedRouteHook = Some(hook))
+
+  /**
     * Registers an action to perform when a route is closed.
     *
     * @param hook the action to perform when a route is closed
@@ -125,6 +170,14 @@ class RoutingTable private (
     * @return a new `RoutingTable` with the given action registered.
     */
   def onTargetClosed(hook: PortRef => Unit): RoutingTable = copy(closedTargetHook = Some(hook))
+
+  private def openRouteUnchecked(src: PortRef, tgt: PortRef): RoutingTable = {
+    openedRouteHook.foreach(_(src, tgt))
+
+    val newRoutes = routeMap + (src -> (routeMap.getOrElse(src, Set.empty) + tgt))
+    val newRevRoutes = revRouteMap + (tgt -> (revRouteMap.getOrElse(tgt, Set.empty) + src))
+    copy(routes = newRoutes, revRoutes = newRevRoutes)
+  }
 
   private def closeRouteUnchecked(src: PortRef, tgt: PortRef): RoutingTable = {
     closedRouteHook.foreach(_(src, tgt))
@@ -151,15 +204,23 @@ class RoutingTable private (
   private[this] def copy(
     routes: Map[PortRef, Set[PortRef]] = routeMap,
     revRoutes: Map[PortRef, Set[PortRef]] = revRouteMap,
+    openedRouteHook: Option[(PortRef, PortRef) => Unit] = openedRouteHook,
     closedRouteHook: Option[(PortRef, PortRef) => Unit] = closedRouteHook,
     closedSourceHook: Option[PortRef => Unit] = closedSourceHook,
     closedTargetHook: Option[PortRef => Unit] = closedTargetHook) = {
 
-    new RoutingTable(routes, revRoutes, closedRouteHook, closedSourceHook, closedTargetHook)
+    new RoutingTable(routes, revRoutes, openedRouteHook, closedRouteHook, closedSourceHook, closedTargetHook)
   }
 }
 
 object RoutingTable {
+
+  /**
+    * Creates an empty `RoutingTable`.
+    *
+    * @return an empty `RoutingTable`.
+    */
+  def apply(): RoutingTable = new RoutingTable(Map(), Map(), None, None, None, None)
 
   /**
     * Builds a `RoutingTable` from a graph.
@@ -167,19 +228,5 @@ object RoutingTable {
     * @param graph the graph to be used
     * @return the `RoutingTable` built from the given graph.
     */
-  def apply(graph: Graph) = {
-
-    // the initial routing table mapping outgoing ports to a list of destination ports to which packets should be sent
-    val routes = graph.edges.mapValues(_.keySet)
-
-    // the reversed index of initialRoutes, for checking which ports send data to each target port
-    val revRoutes = routes.foldLeft(Map[PortRef, Set[PortRef]]()) {
-      case (acc, (src, tgts)) =>
-        tgts.foldLeft(acc) { (acc2, tgt) =>
-          acc2 + (tgt -> (acc2.getOrElse(tgt, Set.empty) + src))
-        }
-    }
-
-    new RoutingTable(routes, revRoutes, None, None, None)
-  }
+  def apply(graph: Graph): RoutingTable = RoutingTable().loadGraph(graph)
 }
