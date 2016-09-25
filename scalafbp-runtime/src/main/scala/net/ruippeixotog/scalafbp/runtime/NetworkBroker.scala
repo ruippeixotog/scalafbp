@@ -69,38 +69,19 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef, dynamic: Boolean) exten
 
   def startNetwork(): RoutingTable = {
 
-    val routingTable = RoutingTable(graph)
-      .onRouteClosed { (src, tgt) => outputActor ! Disconnect(graph.id, Some(src), tgt) }
-      .onSourceClosed { src => if (!dynamic) nodeActors(src.node) ! OutPortDisconnected(src.port) }
-      .onTargetClosed { tgt => if (!dynamic) nodeActors(tgt.node) ! InPortDisconnected(tgt.port) }
-
     // send the initial data packets to node actors and send full [Connect, Data, Disconnect] sequence to `outputActor`
     graph.initials.foreach {
       case (tgt, Initial(data, _)) => sendInitial(tgt, data)
     }
 
-    // send a Connect message to `outputActor` for each edge
-    routingTable.routes.foreach {
-      case (src, tgt) => outputActor ! Connect(graph.id, Some(src), tgt)
-    }
+    val noop = { _: PortRef => }
 
-    // send an immediate `InPortDisconnected` to each node actor with an unconnected in port and a `OutPortDisconnected`
-    // to each node actor with an unconnected out port
-    if (!dynamic) {
-      graph.nodes.iterator.foreach {
-        case (nodeId, node) =>
-          node.component.inPorts.foreach { inPort =>
-            if (routingTable.reverseRoutes(PortRef(nodeId, inPort.id)).isEmpty)
-              nodeActors(nodeId) ! InPortDisconnected(inPort.id)
-          }
-          node.component.outPorts.foreach { outPort =>
-            if (routingTable.routes(PortRef(nodeId, outPort.id)).isEmpty)
-              nodeActors(nodeId) ! OutPortDisconnected(outPort.id)
-          }
-      }
-    }
-
-    routingTable
+    RoutingTable()
+      .onRouteOpened { (src, tgt) => outputActor ! Connect(graph.id, Some(src), tgt) }
+      .onRouteClosed { (src, tgt) => outputActor ! Disconnect(graph.id, Some(src), tgt) }
+      .onSourceClosed(if (dynamic) noop else { src => nodeActors(src.node) ! OutPortDisconnected(src.port) })
+      .onTargetClosed(if (dynamic) noop else { tgt => nodeActors(tgt.node) ! InPortDisconnected(tgt.port) })
+      .loadGraph(graph)
   }
 
   def withKnownSender(msg: Any)(f: String => Unit): Unit = {
@@ -123,7 +104,6 @@ class NetworkBroker(graph: Graph, outputActor: ActorRef, dynamic: Boolean) exten
     // `activeNodes` is only decremented when the `Terminated` message is received
 
     case GraphStore.Created(EdgeKey(_, src, tgt), _) =>
-      outputActor ! Connect(graph.id, Some(src), tgt)
       context.become(brokerBehavior(activeNodes, routingTable.openRoute(src, tgt)))
 
     case GraphStore.Deleted(EdgeKey(_, src, tgt), _) =>
