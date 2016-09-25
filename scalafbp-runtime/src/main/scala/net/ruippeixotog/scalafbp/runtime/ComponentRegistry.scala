@@ -23,13 +23,7 @@ class MapComponentRegistry(map: Map[String, Component]) extends ComponentRegistr
 
 class ClassFinderComponentRegistry extends ComponentRegistry with SLF4JLogging {
   private[this] val m = runtimeMirror(getClass.getClassLoader)
-
-  private[this] val finder: ClassFinder = {
-    val realClasspath = getClass.getClassLoader.asInstanceOf[URLClassLoader].
-      getURLs.map { url => new File(url.getFile) }
-
-    ClassFinder(new File(".") :: realClasspath.toList ::: ClassFinder.classpath)
-  }
+  private[this] val finder = ClassFinder()
 
   private[this] def newInstance(className: String): Option[Component] = Try {
     if (className.endsWith("$")) {
