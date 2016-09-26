@@ -135,11 +135,33 @@ private[protocol] object GraphMessages {
     graph: String,
     secret: String) extends GraphMessage
 
+  case class RemoveInPort(
+    public: String,
+    graph: String,
+    secret: String) extends GraphMessage
+
+  case class RenameInPort(
+    from: String,
+    to: String,
+    graph: String,
+    secret: String) extends GraphMessage
+
   case class AddOutPort(
     public: String,
     node: String,
     port: String,
     metadata: Option[Map[String, JsValue]],
+    graph: String,
+    secret: String) extends GraphMessage
+
+  case class RemoveOutPort(
+    public: String,
+    graph: String,
+    secret: String) extends GraphMessage
+
+  case class RenameOutPort(
+    from: String,
+    to: String,
     graph: String,
     secret: String) extends GraphMessage
 

@@ -92,6 +92,12 @@ object GraphStore {
   private def initialLens(id: String, tgt: PortRef): Optional[Store, Option[Initial]] =
     nodeLensOpt(id, tgt.node) ^|-> GenLens[Node](_.initials) ^|-> at(tgt.port)
 
+  private def publicInPortLens(id: String, public: String): Optional[Store, Option[PublicPort]] =
+    graphLensOpt(id) ^|-> GenLens[Graph](_.publicIn) ^|-> at(public)
+
+  private def publicOutPortLens(id: String, public: String): Optional[Store, Option[PublicPort]] =
+    graphLensOpt(id) ^|-> GenLens[Graph](_.publicOut) ^|-> at(public)
+
   private def revEdgesLens(id: String): Traversal[Store, Map[PortRef, Edge]] =
     graphLensOpt(id) ^|-> GenLens[Graph](_.nodes) ^|->> each ^|-> GenLens[Node](_.edges) ^|->> each
 
@@ -114,6 +120,14 @@ object GraphStore {
 
   case class InitialKey(id: String, tgt: PortRef) extends Key[Initial] {
     val lens = initialLens(id, tgt)
+  }
+
+  case class PublicInPortKey(id: String, public: String) extends Key[PublicPort] {
+    val lens = publicInPortLens(id, public)
+  }
+
+  case class PublicOutPortKey(id: String, public: String) extends Key[PublicPort] {
+    val lens = publicOutPortLens(id, public)
   }
 
   sealed trait Request[A] {

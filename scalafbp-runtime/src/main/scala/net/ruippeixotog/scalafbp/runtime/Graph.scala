@@ -4,7 +4,11 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.Component
 
-case class Graph(id: String, nodes: Map[String, Node] = Map.empty) {
+case class Graph(
+    id: String,
+    nodes: Map[String, Node] = Map.empty,
+    publicIn: Map[String, PublicPort] = Map.empty,
+    publicOut: Map[String, PublicPort] = Map.empty) {
 
   def edges: Map[PortRef, Map[PortRef, Edge]] =
     for { (srcNode, node) <- nodes; (srcPort, tgts) <- node.edges }
@@ -27,3 +31,4 @@ case class PortRef(node: String, port: String) {
 
 case class Edge(metadata: Map[String, JsValue] = Map.empty)
 case class Initial(value: JsValue, metadata: Map[String, JsValue] = Map.empty)
+case class PublicPort(internal: PortRef, metadata: Map[String, JsValue] = Map.empty)

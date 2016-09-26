@@ -178,6 +178,36 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
     }
   }
 
+  val publicInPortSettings = new TestSettings[PublicPort] {
+    val existingKey = PublicInPortKey("testgraph", "pubIn1")
+    val missingKey = PublicInPortKey("testgraph", "pubIn2")
+    val noPathKeys = List(PublicInPortKey("missinggraph", "pubIn1"))
+
+    val existingEntity = PublicPort(PortRef("testnode", "in1"))
+    val newEntity = PublicPort(PortRef("testnode", "in2"))
+    def updated(port: PublicPort) = port.copy(metadata = Map("a" -> JsNull))
+
+    override def init(store: ActorRef) = {
+      nodeSettings.init(store)
+      super.init(store)
+    }
+  }
+
+  val publicOutPortSettings = new TestSettings[PublicPort] {
+    val existingKey = PublicOutPortKey("testgraph", "pubOut1")
+    val missingKey = PublicOutPortKey("testgraph", "pubOut2")
+    val noPathKeys = List(PublicOutPortKey("missinggraph", "pubOut1"))
+
+    val existingEntity = PublicPort(PortRef("testnode", "out1"))
+    val newEntity = PublicPort(PortRef("testnode", "out2"))
+    def updated(port: PublicPort) = port.copy(metadata = Map("a" -> JsNull))
+
+    override def init(store: ActorRef) = {
+      nodeSettings.init(store)
+      super.init(store)
+    }
+  }
+
   "A GraphStore" should {
 
     allowCrudOperationsOn("graph", graphSettings)
@@ -213,6 +243,8 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
     }
 
     allowCrudOperationsOn("initial value", initialSettings)
+    allowCrudOperationsOn("public in port", publicInPortSettings)
+    allowCrudOperationsOn("public out port", publicOutPortSettings)
 
     "update the full graph as new contents are added" in {
       val store = system.actorOf(Props(new GraphStore))
@@ -220,13 +252,17 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       store ! Create(NodeKey("testgraph", "testnode"), Node(DummyComponent(1, 1)))
       store ! Create(EdgeKey("testgraph", PortRef("testnode", "out1"), PortRef("testnode", "in1")), Edge())
       store ! Create(InitialKey("testgraph", PortRef("testnode", "in1")), Initial(JsTrue))
+      store ! Create(PublicInPortKey("testgraph", "pubIn1"), PublicPort(PortRef("testnode", "in1")))
+      store ! Create(PublicOutPortKey("testgraph", "pubOut1"), PublicPort(PortRef("testnode", "out1")))
 
       val fullGraph = Graph(
         "testgraph",
         nodes = Map("testnode" -> Node(
           DummyComponent(1, 1),
           edges = Map("out1" -> Map(PortRef("testnode", "in1") -> Edge())),
-          initials = Map("in1" -> Initial(JsTrue)))))
+          initials = Map("in1" -> Initial(JsTrue)))),
+        publicIn = Map("pubIn1" -> PublicPort(PortRef("testnode", "in1"))),
+        publicOut = Map("pubOut1" -> PublicPort(PortRef("testnode", "out1"))))
 
       (store ? Get(GraphKey("testgraph"))).mapTo[Response[Graph]] must beLike[Response[Graph]] {
         case Got(_, Some(graph)) => graph mustEqual fullGraph
