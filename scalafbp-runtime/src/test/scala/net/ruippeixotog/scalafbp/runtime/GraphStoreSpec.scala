@@ -1,55 +1,41 @@
 package net.ruippeixotog.scalafbp.runtime
 
+import scala.concurrent.duration._
+import scala.reflect.ClassTag
+
+import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.pattern.ask
-import akka.actor.{ ActorSystem, Props }
 import akka.testkit.{ TestKit, TestProbe }
 import akka.util.Timeout
 import org.specs2.concurrent.ExecutionEnv
+import org.specs2.matcher.{ MatchResult, Matcher }
 import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
-import scala.concurrent.duration._
-
-import org.specs2.matcher.{ MatchResult, Matcher }
+import org.specs2.specification.core.Fragment
 import spray.json._
 
 import net.ruippeixotog.scalafbp.component.DummyComponent
 import net.ruippeixotog.scalafbp.runtime.GraphStore._
 
 class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) with SpecificationLike {
+  implicit val timeout = Timeout(3.seconds)
 
-  abstract class GraphStoreInstance(
-      withNode: Boolean = false,
-      withEdge: Boolean = false,
-      withInitial: Boolean = false) extends Scope {
-    implicit val timeout = Timeout(3.seconds)
+  trait TestSettings[A] {
+    def existingKey: Key[A]
+    def missingKey: Key[A]
+    def noPathKeys: Seq[Key[A]]
+    def existingEntity: A
+    def newEntity: A
+    def updated(old: A): A
 
+    def init(store: ActorRef) = {
+      store ! Create(existingKey, existingEntity)
+    }
+  }
+
+  abstract class GraphStoreInstance[A](settings: TestSettings[A]) extends Scope {
     val store = system.actorOf(Props(new GraphStore))
-
-    val testGraphKey = GraphKey("testgraph")
-    val testGraph = Graph(testGraphKey.id)
-    val missingGraphKey = GraphKey("notexists")
-
-    val testNodeKey = NodeKey(testGraphKey.id, "testnode")
-    val testNode = Node(DummyComponent(2, 2))
-    val missingNodeKey = NodeKey(testGraphKey.id, "notexists")
-    val noPathNodeKey = NodeKey(missingGraphKey.id, testNodeKey.nodeId)
-
-    val testEdgeKey = EdgeKey(testGraphKey.id, PortRef(testNodeKey.nodeId, "out1"), PortRef(testNodeKey.nodeId, "in1"))
-    val testEdge = Edge()
-    val missingEdgeKey = EdgeKey(testGraphKey.id, PortRef(testNodeKey.nodeId, "out2"), PortRef(testNodeKey.nodeId, "in1"))
-    val noPathEdgeKey1 = EdgeKey(missingGraphKey.id, PortRef(testNodeKey.nodeId, "out1"), PortRef(testNodeKey.nodeId, "in1"))
-    val noPathEdgeKey2 = EdgeKey(testGraphKey.id, PortRef(missingNodeKey.nodeId, "out1"), PortRef(missingNodeKey.nodeId, "in1"))
-
-    val testInitialKey = InitialKey(testGraphKey.id, PortRef(testNodeKey.nodeId, "out1"))
-    val testInitial = Initial(JsNumber(0))
-    val missingInitialKey = InitialKey(testGraphKey.id, PortRef(testNodeKey.nodeId, "out2"))
-    val noPathInitialKey1 = InitialKey(missingGraphKey.id, PortRef(testNodeKey.nodeId, "out1"))
-    val noPathInitialKey2 = InitialKey(testGraphKey.id, PortRef(missingNodeKey.nodeId, "out1"))
-
-    store ! Create(testGraphKey, testGraph)
-    if (withNode) store ! Create(testNodeKey, testNode)
-    if (withNode && withEdge) store ! Create(testEdgeKey, testEdge)
-    if (withNode && withInitial) store ! Create(testInitialKey, testInitial)
+    settings.init(store)
   }
 
   def beStoreError: Matcher[Any] = PartialFunction[Any, MatchResult[Any]] {
@@ -57,213 +43,194 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
     case _ => ko
   }
 
+  def allowCrudOperationsOn[A: ClassTag](name: String, settings: TestSettings[A]): Fragment = {
+    import settings._
+
+    s"allow creating and retrieving ${name}s" in new GraphStoreInstance(settings) {
+      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, Some(existingEntity))).await
+      (store ? Get(missingKey)) must beEqualTo(Got(missingKey, None)).await
+      (store ? Create(missingKey, newEntity)) must beEqualTo(Created(missingKey, newEntity)).await
+      (store ? Get(missingKey)) must beEqualTo(Got(missingKey, Some(newEntity))).await
+      forall(noPathKeys) { noPathKey =>
+        (store ? Get(noPathKey)) must beStoreError.await
+        (store ? Create(noPathKey, newEntity)) must beStoreError.await
+      }
+    }
+
+    s"allow updating existing ${name}s" in new GraphStoreInstance(settings) {
+      (store ? Update(existingKey, updated)) must beEqualTo(Updated(existingKey, existingEntity, updated(existingEntity))).await
+      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, Some(updated(existingEntity)))).await
+      (store ? Update(missingKey, updated)) must beStoreError.await
+      forall(noPathKeys) { noPathKey =>
+        (store ? Update(noPathKey, updated)) must beStoreError.await
+      }
+    }
+
+    s"allow upserting ${name}s" in new GraphStoreInstance(settings) {
+      (store ? Upsert(missingKey, newEntity)) must beEqualTo(Created(missingKey, newEntity)).await
+      (store ? Get(missingKey)) must beEqualTo(Got(missingKey, Some(newEntity))).await
+      (store ? Upsert(existingKey, newEntity)) must beEqualTo(Updated(existingKey, existingEntity, newEntity)).await
+      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, Some(newEntity))).await
+      forall(noPathKeys) { noPathKey =>
+        (store ? Upsert(noPathKey, newEntity)) must beStoreError.await
+      }
+    }
+
+    s"allow deleting existing ${name}s" in new GraphStoreInstance(settings) {
+      (store ? Delete(existingKey)) must beEqualTo(Deleted(existingKey, existingEntity)).await
+      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, None)).await
+      (store ? Delete(existingKey)) must beStoreError.await
+      (store ? Delete(missingKey)) must beStoreError.await
+      forall(noPathKeys) { noPathKey =>
+        (store ? Delete(noPathKey)) must beStoreError.await
+      }
+    }
+
+    settings.existingKey match {
+      case _: GraphKey =>
+        s"allow listening to changes on the lifetime of graphs" in new GraphStoreInstance(settings) {
+          val probe = TestProbe()
+
+          store ! Watch("testgraph", probe.ref)
+          store ! Update(existingKey, updated)
+          probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
+          store ! Delete(existingKey)
+          probe.expectMsg(Event(Deleted(existingKey, updated(existingEntity))))
+        }
+
+      case _ =>
+        s"inform graph listeners of changes to ${name}s" in new GraphStoreInstance(settings) {
+          val probe = TestProbe()
+
+          store ! Watch("testgraph", probe.ref)
+          store ! Create(missingKey, newEntity)
+          probe.expectMsg(Event(Created(missingKey, newEntity)))
+          store ! Update(existingKey, updated)
+          probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
+
+          store ! Unwatch("testgraph", probe.ref)
+          store ! Update(missingKey, updated)
+          probe.expectNoMsg()
+
+          store ! Watch("testgraph", probe.ref)
+          store ! Delete(existingKey)
+          probe.expectMsg(Event(Deleted(existingKey, updated(existingEntity))))
+        }
+    }
+  }
+
+  val graphSettings = new TestSettings[Graph] {
+    val existingKey = GraphKey("testgraph")
+    val missingKey = GraphKey("missinggraph")
+    val noPathKeys = Nil
+
+    val existingEntity = Graph("testgraph")
+    val newEntity = Graph("id")
+    def updated(graph: Graph) = graph.copy(nodes = Map("a" -> Node(null)))
+  }
+
+  val nodeSettings = new TestSettings[Node] {
+    val existingKey = NodeKey("testgraph", "testnode")
+    val missingKey = NodeKey("testgraph", "missingnode")
+    val noPathKeys = List(NodeKey("missinggraph", "testnode"))
+
+    val existingEntity = Node(DummyComponent(2, 2))
+    val newEntity = Node(DummyComponent(1, 1))
+    def updated(node: Node) = node.copy(metadata = Map("a" -> JsNull))
+
+    override def init(store: ActorRef) = {
+      graphSettings.init(store)
+      super.init(store)
+    }
+  }
+
+  val edgeSettings = new TestSettings[Edge] {
+    val existingKey = EdgeKey("testgraph", PortRef("testnode", "out1"), PortRef("testnode", "in1"))
+    val missingKey = EdgeKey("testgraph", PortRef("testnode", "out2"), PortRef("testnode", "in1"))
+    val noPathKeys = List(
+      EdgeKey("missinggraph", PortRef("testnode", "out1"), PortRef("testnode", "in1")),
+      EdgeKey("testgraph", PortRef("missingnode", "out1"), PortRef("missingnode", "in1")))
+
+    val existingEntity = Edge()
+    val newEntity = Edge(Map("a" -> JsTrue))
+    def updated(edge: Edge) = edge.copy(metadata = Map("a" -> JsNull))
+
+    override def init(store: ActorRef) = {
+      nodeSettings.init(store)
+      super.init(store)
+    }
+  }
+
+  val initialSettings = new TestSettings[Initial] {
+    val existingKey = InitialKey("testgraph", PortRef("testnode", "in1"))
+    val missingKey = InitialKey("testgraph", PortRef("testnode", "in2"))
+    val noPathKeys = List(
+      InitialKey("missinggraph", PortRef("testnode", "in1")),
+      InitialKey("testgraph", PortRef("missingnode", "in1")))
+
+    val existingEntity = Initial(JsNumber(0))
+    val newEntity = Initial(JsNumber(1))
+    def updated(initial: Initial) = initial.copy(metadata = Map("a" -> JsNull))
+
+    override def init(store: ActorRef) = {
+      nodeSettings.init(store)
+      super.init(store)
+    }
+  }
+
   "A GraphStore" should {
 
-    "allow creating and retrieving graphs" in new GraphStoreInstance {
-      val newGraph = Graph(missingGraphKey.id)
+    allowCrudOperationsOn("graph", graphSettings)
+    allowCrudOperationsOn("node", nodeSettings)
 
-      (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, Some(testGraph))).await
-      (store ? Get(missingGraphKey)) must beEqualTo(Got(missingGraphKey, None)).await
-      (store ? Create(missingGraphKey, newGraph)) must beEqualTo(Created(missingGraphKey, newGraph)).await
-      (store ? Get(missingGraphKey)) must beEqualTo(Got(missingGraphKey, Some(newGraph))).await
+    "allow renaming existing nodes" in new GraphStoreInstance(nodeSettings) {
+      import nodeSettings._
+
+      (store ? Rename(existingKey, missingKey.nodeId)) must beEqualTo(Renamed(existingKey, missingKey.nodeId)).await
+      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, None)).await
+      (store ? Get(missingKey)) must beEqualTo(Got(missingKey, Some(existingEntity))).await
+      (store ? Rename(existingKey, "any")) must beStoreError.await
+      forall(noPathKeys) { noPathKey =>
+        (store ? Rename(noPathKey, "any")) must beStoreError.await
+      }
     }
 
-    "allow updating existing graphs" in new GraphStoreInstance {
-      def f(graph: Graph) = graph.copy(nodes = Map("a" -> Node(null)))
+    allowCrudOperationsOn("edge", edgeSettings)
 
-      (store ? Update(testGraphKey, f)) must beEqualTo(Updated(testGraphKey, testGraph, f(testGraph))).await
-      (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, Some(f(testGraph)))).await
-      (store ? Update(missingGraphKey, f)) must beStoreError.await
+    "update correctly the edges when a node is renamed" in new GraphStoreInstance(edgeSettings) {
+      import edgeSettings._
+
+      val existingNodeKey = nodeSettings.existingKey
+      val missingNodeId = nodeSettings.missingKey.nodeId
+
+      val renamedEdgeKey = existingKey.copy(
+        src = existingKey.src.copy(node = missingNodeId),
+        tgt = existingKey.tgt.copy(node = missingNodeId))
+
+      (store ? Rename(existingNodeKey, missingNodeId)) must beEqualTo(Renamed(existingNodeKey, missingNodeId)).await
+      (store ? Get(existingKey)) must beStoreError.await
+      (store ? Get(renamedEdgeKey)) must beEqualTo(Got(renamedEdgeKey, Some(existingEntity))).await
     }
 
-    "allow upserting graphs" in new GraphStoreInstance {
-      val newGraph = Graph(missingGraphKey.id)
+    allowCrudOperationsOn("initial value", initialSettings)
 
-      (store ? Upsert(missingGraphKey, newGraph)) must beEqualTo(Created(missingGraphKey, newGraph)).await
-      (store ? Get(missingGraphKey)) must beEqualTo(Got(missingGraphKey, Some(newGraph))).await
-      (store ? Upsert(testGraphKey, newGraph)) must beEqualTo(Updated(testGraphKey, testGraph, newGraph)).await
-      (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, Some(newGraph))).await
-    }
+    "update the full graph as new contents are added" in {
+      val store = system.actorOf(Props(new GraphStore))
+      store ! Create(GraphKey("testgraph"), Graph("testgraph"))
+      store ! Create(NodeKey("testgraph", "testnode"), Node(DummyComponent(1, 1)))
+      store ! Create(EdgeKey("testgraph", PortRef("testnode", "out1"), PortRef("testnode", "in1")), Edge())
+      store ! Create(InitialKey("testgraph", PortRef("testnode", "in1")), Initial(JsTrue))
 
-    "allow deleting existing graphs" in new GraphStoreInstance {
-      (store ? Delete(testGraphKey)) must beEqualTo(Deleted(testGraphKey, testGraph)).await
-      (store ? Get(testGraphKey)) must beEqualTo(Got(testGraphKey, None)).await
-      (store ? Delete(testGraphKey)) must beStoreError.await
-      (store ? Delete(missingGraphKey)) must beStoreError.await
-    }
+      val fullGraph = Graph(
+        "testgraph",
+        nodes = Map("testnode" -> Node(
+          DummyComponent(1, 1),
+          edges = Map("out1" -> Map(PortRef("testnode", "in1") -> Edge())),
+          initials = Map("in1" -> Initial(JsTrue)))))
 
-    "allow creating and retrieving nodes on existing graphs" in new GraphStoreInstance(true) {
-      val newNode = Node(DummyComponent(1, 1))
-
-      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, Some(testNode))).await
-      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, None)).await
-      (store ? Create(missingNodeKey, newNode)) must beEqualTo(Created(missingNodeKey, newNode)).await
-      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(newNode))).await
-      (store ? Get(noPathNodeKey)) must beStoreError.await
-      (store ? Create(missingNodeKey, newNode)) must beStoreError.await
-      (store ? Create(noPathNodeKey, newNode)) must beStoreError.await
-    }
-
-    "allow updating existing nodes" in new GraphStoreInstance(true) {
-      def f(node: Node) = node.copy(metadata = Map("a" -> JsNull))
-
-      (store ? Update(testNodeKey, f)) must beEqualTo(Updated(testNodeKey, testNode, f(testNode))).await
-      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, Some(f(testNode)))).await
-      (store ? Update(missingNodeKey, f)) must beStoreError.await
-      (store ? Update(noPathNodeKey, f)) must beStoreError.await
-    }
-
-    "allow upserting nodes on existing graphs" in new GraphStoreInstance(true) {
-      val newNode = Node(DummyComponent(1, 1))
-
-      (store ? Upsert(missingNodeKey, newNode)) must beEqualTo(Created(missingNodeKey, newNode)).await
-      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(newNode))).await
-      (store ? Upsert(testNodeKey, newNode)) must beEqualTo(Updated(testNodeKey, testNode, newNode)).await
-      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, Some(newNode))).await
-      (store ? Upsert(noPathNodeKey, newNode)) must beStoreError.await
-    }
-
-    "allow renaming existing nodes" in new GraphStoreInstance(true) {
-      (store ? Rename(testNodeKey, missingNodeKey.nodeId)) must beEqualTo(Renamed(testNodeKey, missingNodeKey.nodeId)).await
-      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, None)).await
-      (store ? Get(missingNodeKey)) must beEqualTo(Got(missingNodeKey, Some(testNode))).await
-      (store ? Rename(testNodeKey, "any")) must beStoreError.await
-      (store ? Rename(noPathNodeKey, "any")) must beStoreError.await
-    }
-
-    "allow deleting existing nodes" in new GraphStoreInstance(true) {
-      (store ? Delete(testNodeKey)) must beEqualTo(Deleted(testNodeKey, testNode)).await
-      (store ? Get(testNodeKey)) must beEqualTo(Got(testNodeKey, None)).await
-      (store ? Delete(testNodeKey)) must beStoreError.await
-      (store ? Delete(noPathNodeKey)) must beStoreError.await
-    }
-
-    "allow creating and retrieving edges on existing nodes" in new GraphStoreInstance(true, true) {
-      val newEdge = Edge(Map("a" -> JsTrue))
-
-      (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(testEdge))).await
-      (store ? Get(missingEdgeKey)) must beEqualTo(Got(missingEdgeKey, None)).await
-      (store ? Create(missingEdgeKey, newEdge)) must beEqualTo(Created(missingEdgeKey, newEdge)).await
-      (store ? Get(missingEdgeKey)) must beEqualTo(Got(missingEdgeKey, Some(newEdge))).await
-      (store ? Get(noPathEdgeKey1)) must beStoreError.await
-      (store ? Get(noPathEdgeKey2)) must beStoreError.await
-      (store ? Create(noPathEdgeKey1, newEdge)) must beStoreError.await
-      (store ? Create(noPathEdgeKey2, newEdge)) must beStoreError.await
-    }
-
-    "allow updating existing edges" in new GraphStoreInstance(true, true) {
-      def f(edge: Edge) = edge.copy(metadata = Map("a" -> JsNull))
-
-      (store ? Update(testEdgeKey, f)) must beEqualTo(Updated(testEdgeKey, testEdge, f(testEdge))).await
-      (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(f(testEdge)))).await
-      (store ? Update(missingEdgeKey, f)) must beStoreError.await
-      (store ? Update(noPathEdgeKey1, f)) must beStoreError.await
-    }
-
-    "allow upserting edges on existing nodes" in new GraphStoreInstance(true, true) {
-      val newEdge = Edge(Map("a" -> JsTrue))
-
-      (store ? Upsert(missingEdgeKey, newEdge)) must beEqualTo(Created(missingEdgeKey, newEdge)).await
-      (store ? Get(missingEdgeKey)) must beEqualTo(Got(missingEdgeKey, Some(newEdge))).await
-      (store ? Upsert(testEdgeKey, newEdge)) must beEqualTo(Updated(testEdgeKey, testEdge, newEdge)).await
-      (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, Some(newEdge))).await
-      (store ? Upsert(noPathEdgeKey1, newEdge)) must beStoreError.await
-      (store ? Upsert(noPathEdgeKey2, newEdge)) must beStoreError.await
-    }
-
-    "update correctly the edges when a node is renamed" in new GraphStoreInstance(true, true) {
-      val renamedEdgeKey = testEdgeKey.copy(
-        src = testEdgeKey.src.copy(node = missingNodeKey.nodeId),
-        tgt = testEdgeKey.tgt.copy(node = missingNodeKey.nodeId))
-
-      (store ? Rename(testNodeKey, missingNodeKey.nodeId)) must beEqualTo(Renamed(testNodeKey, missingNodeKey.nodeId)).await
-      (store ? Get(testEdgeKey)) must beStoreError.await
-      (store ? Get(renamedEdgeKey)) must beEqualTo(Got(renamedEdgeKey, Some(testEdge))).await
-    }
-
-    "allow deleting existing edges" in new GraphStoreInstance(true, true) {
-      (store ? Delete(testEdgeKey)) must beEqualTo(Deleted(testEdgeKey, testEdge)).await
-      (store ? Get(testEdgeKey)) must beEqualTo(Got(testEdgeKey, None)).await
-      (store ? Delete(testEdgeKey)) must beStoreError.await
-      (store ? Delete(noPathEdgeKey1)) must beStoreError.await
-    }
-
-    "allow creating and retrieving initial values on existing nodes" in new GraphStoreInstance(true, withInitial = true) {
-      val newInitial = Initial(JsNumber(1))
-
-      (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, Some(testInitial))).await
-      (store ? Get(missingInitialKey)) must beEqualTo(Got(missingInitialKey, None)).await
-      (store ? Create(missingInitialKey, newInitial)) must beEqualTo(Created(missingInitialKey, newInitial)).await
-      (store ? Get(missingInitialKey)) must beEqualTo(Got(missingInitialKey, Some(newInitial))).await
-      (store ? Get(noPathInitialKey1)) must beStoreError.await
-      (store ? Get(noPathInitialKey2)) must beStoreError.await
-      (store ? Create(noPathInitialKey1, newInitial)) must beStoreError.await
-      (store ? Create(noPathInitialKey2, newInitial)) must beStoreError.await
-    }
-
-    "allow updating existing initial values" in new GraphStoreInstance(true, withInitial = true) {
-      def f(initial: Initial) = initial.copy(metadata = Map("a" -> JsNull))
-
-      (store ? Update(testInitialKey, f)) must beEqualTo(Updated(testInitialKey, testInitial, f(testInitial))).await
-      (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, Some(f(testInitial)))).await
-      (store ? Update(missingInitialKey, f)) must beStoreError.await
-      (store ? Update(noPathInitialKey1, f)) must beStoreError.await
-    }
-
-    "allow upserting initial values on existing nodes" in new GraphStoreInstance(true, withInitial = true) {
-      val newInitial = Initial(JsNumber(1))
-
-      (store ? Upsert(missingInitialKey, newInitial)) must beEqualTo(Created(missingInitialKey, newInitial)).await
-      (store ? Get(missingInitialKey)) must beEqualTo(Got(missingInitialKey, Some(newInitial))).await
-      (store ? Upsert(testInitialKey, newInitial)) must beEqualTo(Updated(testInitialKey, testInitial, newInitial)).await
-      (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, Some(newInitial))).await
-      (store ? Upsert(noPathInitialKey1, newInitial)) must beStoreError.await
-      (store ? Upsert(noPathInitialKey2, newInitial)) must beStoreError.await
-    }
-
-    "allow deleting existing initial values" in new GraphStoreInstance(true, withInitial = true) {
-      (store ? Delete(testInitialKey)) must beEqualTo(Deleted(testInitialKey, testInitial)).await
-      (store ? Get(testInitialKey)) must beEqualTo(Got(testInitialKey, None)).await
-      (store ? Delete(testInitialKey)) must beStoreError.await
-      (store ? Delete(noPathInitialKey1)) must beStoreError.await
-    }
-
-    "update the full graph as new nodes, edges and initials are added" in new GraphStoreInstance(true, true, true) {
-      (store ? Get(testGraphKey)).mapTo[Response[Graph]] must beLike[Response[Graph]] {
-        case Got(`testGraphKey`, Some(graph)) =>
-          graph.nodes.get(testNodeKey.nodeId) must beSome.which { node =>
-            node.edges.get(testEdgeKey.src.port) must beSome(Map(testEdgeKey.tgt -> testEdge))
-            node.initials.get(testInitialKey.tgt.port) must beSome(testInitial)
-          }
+      (store ? Get(GraphKey("testgraph"))).mapTo[Response[Graph]] must beLike[Response[Graph]] {
+        case Got(_, Some(graph)) => graph mustEqual fullGraph
       }.await
-    }
-
-    "allow adding listeners for events of a graph" in new GraphStoreInstance(true, true, true) {
-      val probe = TestProbe()
-
-      val newNode = Node(DummyComponent(1, 1))
-      def f(edge: Edge) = edge.copy(metadata = Map("a" -> JsNull))
-      def f2(edge: Edge) = edge.copy(metadata = Map("b" -> JsNull))
-
-      store ! Watch(testGraphKey.id, probe.ref)
-      store ! Create(missingNodeKey, newNode)
-      probe.expectMsg(Event(Created(missingNodeKey, newNode)))
-      store ! Update(testEdgeKey, f)
-      probe.expectMsg(Event(Updated(testEdgeKey, testEdge, f(testEdge))))
-
-      store ! Unwatch(testGraphKey.id, probe.ref)
-      store ! Update(testEdgeKey, f2)
-      probe.expectNoMsg()
-
-      store ! Watch(testGraphKey.id, probe.ref)
-      store ! Delete(testInitialKey)
-      probe.expectMsg(Event(Deleted(testInitialKey, testInitial)))
-      store ! Delete(testGraphKey)
-      probe.expectMsgPF() { case Event(ev: Deleted[_]) if ev.key == testGraphKey => ok }
-
-      store ! Create(missingGraphKey, Graph(missingGraphKey.id))
-      store ! Delete(missingGraphKey)
-      probe.expectNoMsg()
     }
   }
 }
