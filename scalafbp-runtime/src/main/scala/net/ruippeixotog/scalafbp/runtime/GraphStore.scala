@@ -39,7 +39,7 @@ class GraphStore extends Actor with SLF4JLogging {
         throw new NoSuchElementException(s"Can't create or update $key on a nonexistent path")
 
       case (Rename(from, to), Some(Some(entity))) =>
-        if (from.id != to.id) throw new IllegalArgumentException(s"Can't move $from to another graph")
+        if (from.graphId != to.graphId) throw new IllegalArgumentException(s"Can't move $from to another graph")
         (Renamed(from, to), from.rename(to, entity)(store))
 
       case (Rename(from, _), _) => throw new NoSuchElementException(s"Can't rename nonexistent $from")
@@ -54,7 +54,7 @@ class GraphStore extends Actor with SLF4JLogging {
       Try(handleRequest(req, store)) match {
         case Success((res, newGraphs)) =>
           store = newGraphs
-          listeners(req.key.id).foreach(_ ! Event(res))
+          listeners(req.key.graphId).foreach(_ ! Event(res))
           sender() ! res
 
         case Failure(ex) =>
@@ -71,33 +71,33 @@ object GraphStore {
 
   private def getOrElseIso[T](default: => T) = Iso[Option[T], T](_.getOrElse(default))(Some.apply)
 
-  private def graphLens(id: String): Lens[Store, Option[Graph]] = at(id)
+  private def graphLens(graphId: String): Lens[Store, Option[Graph]] = at(graphId)
 
-  private def graphLensOpt(id: String): Optional[Store, Graph] = index(id)
+  private def graphLensOpt(graphId: String): Optional[Store, Graph] = index(graphId)
 
-  private def nodeLens(id: String, nodeId: String): Optional[Store, Option[Node]] =
-    graphLensOpt(id) ^|-> GenLens[Graph](_.nodes) ^|-> at(nodeId)
+  private def nodeLens(graphId: String, nodeId: String): Optional[Store, Option[Node]] =
+    graphLensOpt(graphId) ^|-> GenLens[Graph](_.nodes) ^|-> at(nodeId)
 
-  private def nodeLensOpt(id: String, nodeId: String): Optional[Store, Node] =
-    graphLensOpt(id) ^|-> GenLens[Graph](_.nodes) ^|-? index(nodeId)
+  private def nodeLensOpt(graphId: String, nodeId: String): Optional[Store, Node] =
+    graphLensOpt(graphId) ^|-> GenLens[Graph](_.nodes) ^|-? index(nodeId)
 
-  private def edgeLens(id: String, src: PortRef, tgt: PortRef): Optional[Store, Option[Edge]] =
-    nodeLensOpt(id, src.node) ^|-> GenLens[Node](_.edges) ^|-> at(src.port) ^<-> getOrElseIso(Map()) ^|-> at(tgt)
+  private def edgeLens(graphId: String, src: PortRef, tgt: PortRef): Optional[Store, Option[Edge]] =
+    nodeLensOpt(graphId, src.node) ^|-> GenLens[Node](_.edges) ^|-> at(src.port) ^<-> getOrElseIso(Map()) ^|-> at(tgt)
 
-  private def initialLens(id: String, tgt: PortRef): Optional[Store, Option[Initial]] =
-    nodeLensOpt(id, tgt.node) ^|-> GenLens[Node](_.initials) ^|-> at(tgt.port)
+  private def initialLens(graphId: String, tgt: PortRef): Optional[Store, Option[Initial]] =
+    nodeLensOpt(graphId, tgt.node) ^|-> GenLens[Node](_.initials) ^|-> at(tgt.port)
 
-  private def publicInPortLens(id: String, public: String): Optional[Store, Option[PublicPort]] =
-    graphLensOpt(id) ^|-> GenLens[Graph](_.publicIn) ^|-> at(public)
+  private def publicInPortLens(graphId: String, publicId: String): Optional[Store, Option[PublicPort]] =
+    graphLensOpt(graphId) ^|-> GenLens[Graph](_.publicIn) ^|-> at(publicId)
 
-  private def publicOutPortLens(id: String, public: String): Optional[Store, Option[PublicPort]] =
-    graphLensOpt(id) ^|-> GenLens[Graph](_.publicOut) ^|-> at(public)
+  private def publicOutPortLens(graphId: String, publicId: String): Optional[Store, Option[PublicPort]] =
+    graphLensOpt(graphId) ^|-> GenLens[Graph](_.publicOut) ^|-> at(publicId)
 
-  private def revEdgesLens(id: String): Traversal[Store, Map[PortRef, Edge]] =
-    graphLensOpt(id) ^|-> GenLens[Graph](_.nodes) ^|->> each ^|-> GenLens[Node](_.edges) ^|->> each
+  private def revEdgesLens(graphId: String): Traversal[Store, Map[PortRef, Edge]] =
+    graphLensOpt(graphId) ^|-> GenLens[Graph](_.nodes) ^|->> each ^|-> GenLens[Node](_.edges) ^|->> each
 
   sealed trait Key[A] {
-    def id: String
+    def graphId: String
     def lens: Optional[Store, Option[A]]
   }
 
@@ -106,33 +106,33 @@ object GraphStore {
       lens.set(None).andThen(to.lens.set(Some(curr)))
   }
 
-  case class GraphKey(id: String) extends Key[Graph] {
-    val lens = graphLens(id).asOptional
+  case class GraphKey(graphId: String) extends Key[Graph] {
+    val lens = graphLens(graphId).asOptional
   }
 
-  case class NodeKey(id: String, nodeId: String) extends RenamableKey[Node] {
-    val lens = nodeLens(id, nodeId)
+  case class NodeKey(graphId: String, nodeId: String) extends RenamableKey[Node] {
+    val lens = nodeLens(graphId, nodeId)
 
     override def rename(to: Key[Node], curr: Node) =
-      super.rename(to, curr).andThen(revEdgesLens(id).modify(_.map {
+      super.rename(to, curr).andThen(revEdgesLens(graphId).modify(_.map {
         case (tgt, e) => (if (tgt.node == nodeId) tgt.copy(node = to.asInstanceOf[NodeKey].nodeId) else tgt, e)
       }))
   }
 
-  case class EdgeKey(id: String, src: PortRef, tgt: PortRef) extends Key[Edge] {
-    val lens = edgeLens(id, src, tgt)
+  case class EdgeKey(graphId: String, src: PortRef, tgt: PortRef) extends Key[Edge] {
+    val lens = edgeLens(graphId, src, tgt)
   }
 
-  case class InitialKey(id: String, tgt: PortRef) extends Key[Initial] {
-    val lens = initialLens(id, tgt)
+  case class InitialKey(graphId: String, tgt: PortRef) extends Key[Initial] {
+    val lens = initialLens(graphId, tgt)
   }
 
-  case class PublicInPortKey(id: String, public: String) extends RenamableKey[PublicPort] {
-    val lens = publicInPortLens(id, public)
+  case class PublicInPortKey(graphId: String, publicId: String) extends RenamableKey[PublicPort] {
+    val lens = publicInPortLens(graphId, publicId)
   }
 
-  case class PublicOutPortKey(id: String, public: String) extends RenamableKey[PublicPort] {
-    val lens = publicOutPortLens(id, public)
+  case class PublicOutPortKey(graphId: String, publicId: String) extends RenamableKey[PublicPort] {
+    val lens = publicOutPortLens(graphId, publicId)
   }
 
   sealed trait Request[A] {
