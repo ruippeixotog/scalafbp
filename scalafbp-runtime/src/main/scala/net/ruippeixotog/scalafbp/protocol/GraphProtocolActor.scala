@@ -64,7 +64,7 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
 
     case payload: RenameNode =>
       val key = NodeKey(payload.graph, payload.from)
-      askStore(GraphStore.Rename(key, payload.to)).map(_ => payload)
+      askStore(GraphStore.Rename(key, NodeKey(payload.graph, payload.to))).map(_ => payload)
 
     case payload: ChangeNode =>
       val key = NodeKey(payload.graph, payload.id)
@@ -109,6 +109,10 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
       val key = PublicInPortKey(payload.graph, payload.public)
       askStore(GraphStore.Delete(key)).map(_ => payload)
 
+    case payload: RenameInPort =>
+      val key = PublicInPortKey(payload.graph, payload.from)
+      askStore(GraphStore.Rename(key, PublicInPortKey(payload.graph, payload.to))).map(_ => payload)
+
     case payload: AddOutPort =>
       val key = PublicOutPortKey(payload.graph, payload.public)
       val port = runtime.PublicPort(PortRef(payload.node, payload.port), processMetaOpt(payload.metadata))
@@ -117,5 +121,9 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
     case payload: RemoveOutPort =>
       val key = PublicOutPortKey(payload.graph, payload.public)
       askStore(GraphStore.Delete(key)).map(_ => payload)
+
+    case payload: RenameOutPort =>
+      val key = PublicOutPortKey(payload.graph, payload.from)
+      askStore(GraphStore.Rename(key, PublicOutPortKey(payload.graph, payload.to))).map(_ => payload)
   }
 }

@@ -38,14 +38,9 @@ class GraphStore extends Actor with SLF4JLogging {
       case (Upsert(key, _), None) =>
         throw new NoSuchElementException(s"Can't create or update $key on a nonexistent path")
 
-      case (Rename(from, toId), Some(Some(node))) =>
-        val newStore = nodeLens(from.id, toId).set(Some(node))
-          .andThen(from.lens.set(None))
-          .andThen(revEdgesLens(from.id).modify(_.map {
-            case (tgt, e) => (if (tgt.node == from.nodeId) tgt.copy(node = toId) else tgt, e)
-          }))(store)
-
-        (Renamed(from, toId).asInstanceOf[Response[A]], newStore)
+      case (Rename(from, to), Some(Some(entity))) =>
+        if (from.id != to.id) throw new IllegalArgumentException(s"Can't move $from to another graph")
+        (Renamed(from, to), from.rename(to, entity)(store))
 
       case (Rename(from, _), _) => throw new NoSuchElementException(s"Can't rename nonexistent $from")
 
@@ -106,12 +101,22 @@ object GraphStore {
     def lens: Optional[Store, Option[A]]
   }
 
+  sealed trait RenamableKey[A] extends Key[A] {
+    def rename(to: Key[A], curr: A): Store => Store =
+      lens.set(None).andThen(to.lens.set(Some(curr)))
+  }
+
   case class GraphKey(id: String) extends Key[Graph] {
     val lens = graphLens(id).asOptional
   }
 
-  case class NodeKey(id: String, nodeId: String) extends Key[Node] {
+  case class NodeKey(id: String, nodeId: String) extends RenamableKey[Node] {
     val lens = nodeLens(id, nodeId)
+
+    override def rename(to: Key[Node], curr: Node) =
+      super.rename(to, curr).andThen(revEdgesLens(id).modify(_.map {
+        case (tgt, e) => (if (tgt.node == nodeId) tgt.copy(node = to.asInstanceOf[NodeKey].nodeId) else tgt, e)
+      }))
   }
 
   case class EdgeKey(id: String, src: PortRef, tgt: PortRef) extends Key[Edge] {
@@ -122,11 +127,11 @@ object GraphStore {
     val lens = initialLens(id, tgt)
   }
 
-  case class PublicInPortKey(id: String, public: String) extends Key[PublicPort] {
+  case class PublicInPortKey(id: String, public: String) extends RenamableKey[PublicPort] {
     val lens = publicInPortLens(id, public)
   }
 
-  case class PublicOutPortKey(id: String, public: String) extends Key[PublicPort] {
+  case class PublicOutPortKey(id: String, public: String) extends RenamableKey[PublicPort] {
     val lens = publicOutPortLens(id, public)
   }
 
@@ -138,14 +143,14 @@ object GraphStore {
   case class Create[A](key: Key[A], entity: A) extends Request[A]
   case class Update[A](key: Key[A], f: A => A) extends Request[A]
   case class Upsert[A](key: Key[A], entity: A) extends Request[A]
-  case class Rename(key: NodeKey, toId: String) extends Request[Node]
+  case class Rename[A](key: RenamableKey[A], to: Key[A]) extends Request[A]
   case class Delete[A](key: Key[A]) extends Request[A]
 
   sealed trait Response[A]
   case class Got[A](key: Key[A], entity: Option[A]) extends Response[A]
   case class Created[A](key: Key[A], entity: A) extends Response[A]
   case class Updated[A](key: Key[A], oldEntity: A, newEntity: A) extends Response[A]
-  case class Renamed(key: NodeKey, toId: String) extends Response[Node]
+  case class Renamed[A](key: RenamableKey[A], to: Key[A]) extends Response[A]
   case class Deleted[A](key: Key[A], entity: A) extends Response[A]
   case class Error[A](ex: Throwable) extends Response[A]
 

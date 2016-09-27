@@ -76,6 +76,23 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       }
     }
 
+    settings.existingKey match {
+      case _: RenamableKey[A] =>
+        implicit def asRenamable(key: Key[A]) = key.asInstanceOf[RenamableKey[A]]
+
+        s"allow renaming existing ${name}s" in new GraphStoreInstance(settings) {
+          (store ? Rename(existingKey, missingKey)) must beEqualTo(Renamed(existingKey, missingKey)).await
+          (store ? Get(existingKey)) must beEqualTo(Got(existingKey, None)).await
+          (store ? Get(missingKey)) must beEqualTo(Got(missingKey, Some(existingEntity))).await
+          (store ? Rename(existingKey, missingKey)) must beStoreError.await
+          forall(noPathKeys) { noPathKey =>
+            (store ? Rename(noPathKey, existingKey)) must beStoreError.await
+          }
+        }
+
+      case _ => // no test to do here
+    }
+
     s"allow deleting existing ${name}s" in new GraphStoreInstance(settings) {
       (store ? Delete(existingKey)) must beEqualTo(Deleted(existingKey, existingEntity)).await
       (store ? Get(existingKey)) must beEqualTo(Got(existingKey, None)).await
@@ -212,32 +229,19 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
 
     allowCrudOperationsOn("graph", graphSettings)
     allowCrudOperationsOn("node", nodeSettings)
-
-    "allow renaming existing nodes" in new GraphStoreInstance(nodeSettings) {
-      import nodeSettings._
-
-      (store ? Rename(existingKey, missingKey.nodeId)) must beEqualTo(Renamed(existingKey, missingKey.nodeId)).await
-      (store ? Get(existingKey)) must beEqualTo(Got(existingKey, None)).await
-      (store ? Get(missingKey)) must beEqualTo(Got(missingKey, Some(existingEntity))).await
-      (store ? Rename(existingKey, "any")) must beStoreError.await
-      forall(noPathKeys) { noPathKey =>
-        (store ? Rename(noPathKey, "any")) must beStoreError.await
-      }
-    }
-
     allowCrudOperationsOn("edge", edgeSettings)
 
     "update correctly the edges when a node is renamed" in new GraphStoreInstance(edgeSettings) {
       import edgeSettings._
 
       val existingNodeKey = nodeSettings.existingKey
-      val missingNodeId = nodeSettings.missingKey.nodeId
+      val missingNodeKey = nodeSettings.missingKey
 
       val renamedEdgeKey = existingKey.copy(
-        src = existingKey.src.copy(node = missingNodeId),
-        tgt = existingKey.tgt.copy(node = missingNodeId))
+        src = existingKey.src.copy(node = missingNodeKey.nodeId),
+        tgt = existingKey.tgt.copy(node = missingNodeKey.nodeId))
 
-      (store ? Rename(existingNodeKey, missingNodeId)) must beEqualTo(Renamed(existingNodeKey, missingNodeId)).await
+      (store ? Rename(existingNodeKey, missingNodeKey)) must beEqualTo(Renamed(existingNodeKey, missingNodeKey)).await
       (store ? Get(existingKey)) must beStoreError.await
       (store ? Get(renamedEdgeKey)) must beEqualTo(Got(renamedEdgeKey, Some(existingEntity))).await
     }
