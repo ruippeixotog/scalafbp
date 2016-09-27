@@ -12,7 +12,6 @@ case object RunTimeout extends Component {
   val name = "core/RunTimeout"
   val description = "Sends a signal after the given time"
   val icon = Some("clock-o")
-  val isSubgraph = true
 
   val timePort = InPort[Long]("time", "Time after which a signal will be sent (ms)")
   val inPorts = List(timePort)

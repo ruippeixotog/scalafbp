@@ -8,7 +8,6 @@ case object Add extends Component {
   val name = "math/Add"
   val description = "Adds two values"
   val icon = Some("plus")
-  val isSubgraph = true
 
   val augendPort = InPort[Double]("augend", "The first number to add")
   val addendPort = InPort[Double]("addend", "The second number to add")

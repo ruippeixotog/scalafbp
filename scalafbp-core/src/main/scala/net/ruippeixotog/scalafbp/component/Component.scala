@@ -31,7 +31,7 @@ trait Component {
   def name: String
   def description: String
   def icon: Option[String]
-  def isSubgraph: Boolean
+
   def inPorts: List[InPort[_]]
   def outPorts: List[OutPort[_]]
 

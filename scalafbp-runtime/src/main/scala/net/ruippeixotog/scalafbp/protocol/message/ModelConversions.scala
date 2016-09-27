@@ -26,7 +26,7 @@ object ToMessageConversions {
 
   implicit class ComponentConvertible(val comp: component.Component) extends AnyVal with ToMessageConvertible {
     def toMessage = Component(
-      comp.name, Some(comp.description), comp.icon, comp.isSubgraph,
+      comp.name, Some(comp.description), comp.icon, false,
       comp.inPorts.map(_.toMessagePart), comp.outPorts.map(_.toMessagePart))
   }
 

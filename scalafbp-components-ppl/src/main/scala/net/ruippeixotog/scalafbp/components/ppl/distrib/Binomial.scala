@@ -11,7 +11,6 @@ case object Binomial extends Component {
   val name = "ppl/distrib/Binomial"
   val description = "Emits a random variable following a binomial distribution"
   val icon = None
-  val isSubgraph = true
 
   val trialsPort = InPort[PVar[Int]]("trials", "The number of trials")
   val pPort = InPort[PVar[Double]]("p", "The probability of a success")

@@ -9,7 +9,6 @@ case object Concat extends Component {
   val name = "stream/Concat"
   val description = "Emits all packets of a stream followed by all elements of another"
   val icon = Some("compress")
-  val isSubgraph = true
 
   val in1Port = InPort[JsValue]("in1", "The first stream")
   val in2Port = InPort[JsValue]("in2", "The second stream")

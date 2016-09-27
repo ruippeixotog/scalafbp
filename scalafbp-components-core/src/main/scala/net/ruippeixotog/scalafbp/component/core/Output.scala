@@ -10,7 +10,6 @@ case object Output extends Component {
   val name = "core/Output"
   val description = "Sends packets to clients as output messages"
   val icon = Some("bug")
-  val isSubgraph = false
 
   val inPorts = List(
     InPort[JsValue]("in", "Packet to be sent as output message"))

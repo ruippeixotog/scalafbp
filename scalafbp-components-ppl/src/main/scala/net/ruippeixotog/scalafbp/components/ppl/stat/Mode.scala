@@ -11,7 +11,6 @@ case object Mode extends Component {
   val name = "ppl/stat/Mode"
   val description = "Emits the mode of a random variable"
   val icon = None
-  val isSubgraph = true
 
   val varPort = InPort[PVar[JsValue]]("var", "The random variable")
   val inPorts = List(varPort)

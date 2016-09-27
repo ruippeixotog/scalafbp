@@ -12,7 +12,6 @@ case object PlotBar extends Component {
   val name = "ppl/PlotBar"
   val description = "Plots in a bar chart the PMF of a random variable"
   val icon = Some("bar-chart")
-  val isSubgraph = true
 
   val varPort = InPort[PVar[JsValue]]("var", "The random variable to plot")
   val titlePort = InPort[String]("title", "The chart title")

@@ -11,7 +11,6 @@ case object Map extends Component {
   val description = "Transforms the elements of a stream using a function"
 
   val icon = Some("code")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to transform")
   val funcPort = InPort[String]("func", "The function with argument x to use for transformation. " +

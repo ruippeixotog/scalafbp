@@ -10,7 +10,6 @@ case object Scan extends Component {
   val name = "stream/Scan"
   val description = "Accumulates the elements of a stream using a function, emitting the intermediate values"
   val icon = Some("compress")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to scan")
   val initialPort = InPort[JsValue]("initial", "The initial element")

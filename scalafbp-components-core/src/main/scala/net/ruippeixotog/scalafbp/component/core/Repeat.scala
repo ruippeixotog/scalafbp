@@ -9,7 +9,6 @@ case object Repeat extends Component {
   val name = "core/Repeat"
   val description = "Forwards packets in the same way it receives them"
   val icon = Some("forward")
-  val isSubgraph = true
 
   val inPorts = List(
     InPort[JsValue]("in", "Packet to forward"))
