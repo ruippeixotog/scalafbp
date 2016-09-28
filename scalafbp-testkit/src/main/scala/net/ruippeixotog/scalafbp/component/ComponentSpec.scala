@@ -2,6 +2,7 @@ package net.ruippeixotog.scalafbp.component
 
 import scala.concurrent.duration._
 
+import akka.actor.SupervisorStrategy._
 import akka.actor._
 import akka.testkit.{ TestActorRef, TestKit, TestProbe }
 import org.specs2.execute.AsResult
@@ -10,7 +11,7 @@ import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.runtime.NetworkBrokerSupervisorStrategy
+import net.ruippeixotog.scalafbp.component.ComponentSpec.TestBrokerSupervisorStrategy
 
 abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLike {
   def component: Component
@@ -24,14 +25,14 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
   }
 
   trait ComponentInstance extends Scope {
+    def component = ComponentSpec.this.component
+
     private[this] val outPortProbes = component.outPorts.map(_.id -> TestProbe()).toMap
     private[this] val outputProbe = TestProbe()
     private[this] val processErrorProbe = TestProbe()
 
     private[this] val brokerActor = TestActorRef(new Actor {
-      override def supervisorStrategy = new NetworkBrokerSupervisorStrategy({ (_, cause) =>
-        processErrorProbe.ref ! cause
-      })
+      override val supervisorStrategy = new TestBrokerSupervisorStrategy(processErrorProbe)
 
       def receive = {
         case msg @ Outgoing(port, data) => outPortProbes(port).ref.forward(msg)
@@ -121,5 +122,31 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
       processErrorProbe.expectMsgType[Throwable] must not(throwAn[Exception])
     }
+  }
+}
+
+object ComponentSpec {
+  // TODO find a way not to replicate this here (original is in `scalafbp-runtime`)
+  def stoppingDecider: Decider = {
+    case _: Exception => Stop
+  }
+
+  // TODO find a way not to replicate this here (original is in `scalafbp-runtime`)
+  class TestBrokerSupervisorStrategy(processErrorProbe: TestProbe) extends OneForOneStrategy()(stoppingDecider) {
+
+    override def handleFailure(
+      context: ActorContext,
+      child: ActorRef,
+      cause: Throwable,
+      stats: ChildRestartStats,
+      children: Iterable[ChildRestartStats]): Boolean = {
+      cause match {
+        case _: ActorKilledException | _: DeathPactException =>
+        case ex: Exception => processErrorProbe.ref ! cause
+      }
+      super.handleFailure(context, child, cause, stats, children)
+    }
+
+    override val loggingEnabled = false
   }
 }

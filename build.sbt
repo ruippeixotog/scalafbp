@@ -39,7 +39,7 @@ lazy val runtime = projectAt("scalafbp-runtime").
 // -- testkit for components --
 
 lazy val testkit = projectAt("scalafbp-testkit").
-  dependsOn(core, runtime).
+  dependsOn(core).
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
