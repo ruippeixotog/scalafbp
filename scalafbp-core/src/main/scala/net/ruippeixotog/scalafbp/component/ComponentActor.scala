@@ -56,13 +56,15 @@ abstract class ComponentActor[C <: Component](val component: C) extends Actor {
 }
 
 object ComponentActor {
-  case class Incoming(port: String, data: Any)
-  case class Outgoing(port: String, data: Any)
+  sealed trait ComponentMessage
 
-  case class DisconnectInPort(port: String)
-  case class DisconnectOutPort(port: String)
-  case class InPortDisconnected(port: String)
-  case class OutPortDisconnected(port: String) // not used for now
+  case class Incoming(port: String, data: Any) extends ComponentMessage
+  case class Outgoing(port: String, data: Any) extends ComponentMessage
+
+  case class DisconnectInPort(port: String) extends ComponentMessage
+  case class DisconnectOutPort(port: String) extends ComponentMessage
+  case class InPortDisconnected(port: String) extends ComponentMessage
+  case class OutPortDisconnected(port: String) extends ComponentMessage
 
   sealed trait Output
   case class Message(message: String) extends Output

@@ -16,7 +16,7 @@ lazy val core = projectAt("scalafbp-core").
 // -- runtime --
 
 lazy val runtime = projectAt("scalafbp-runtime").
-  dependsOn(core).
+  dependsOn(core, testkit % "test", coreComponents % "test").
   settings(commonSettings: _*).
   settings(uiBuildSettings: _*).
   settings(

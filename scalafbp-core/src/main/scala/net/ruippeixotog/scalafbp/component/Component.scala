@@ -14,6 +14,7 @@ case class InPort[T](
   def addressable = false
 
   def fromJson(js: JsValue): T = m.jsonFormat.read(js)
+  def withId(id: String) = InPort(id, description, required, values, default)
 }
 
 case class OutPort[T](
@@ -25,6 +26,7 @@ case class OutPort[T](
   def addressable = false
 
   def toJson(v: T): JsValue = m.jsonFormat.write(v)
+  def withId(id: String) = OutPort(id, description, required)
 }
 
 trait Component {

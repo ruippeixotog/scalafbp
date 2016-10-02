@@ -4,7 +4,7 @@ import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.ComponentMessages.Component
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages.Edge
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
-import net.ruippeixotog.scalafbp.runtime.{ NetworkBroker, NetworkController }
+import net.ruippeixotog.scalafbp.runtime.{ GraphComponent, NetworkBroker, NetworkController }
 import net.ruippeixotog.scalafbp.{ component, runtime }
 
 object ToMessageConversions {
@@ -26,7 +26,7 @@ object ToMessageConversions {
 
   implicit class ComponentConvertible(val comp: component.Component) extends AnyVal with ToMessageConvertible {
     def toMessage = Component(
-      comp.name, Some(comp.description), comp.icon, false,
+      comp.name, Some(comp.description), comp.icon, comp.isInstanceOf[GraphComponent],
       comp.inPorts.map(_.toMessagePart), comp.outPorts.map(_.toMessagePart))
   }
 

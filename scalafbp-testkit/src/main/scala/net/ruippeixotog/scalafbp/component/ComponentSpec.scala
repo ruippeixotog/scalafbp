@@ -16,12 +16,12 @@ import net.ruippeixotog.scalafbp.component.ComponentSpec.TestBrokerSupervisorStr
 abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLike {
   def component: Component
 
-  implicit class RichInPortList[A](inPorts: List[InPort[A]]) {
-    def apply(id: String) = inPorts.find(_.id == id).get
+  implicit class RichInPortList(inPorts: List[InPort[_]]) {
+    def apply[A](id: String) = inPorts.find(_.id == id).get.asInstanceOf[InPort[A]]
   }
 
-  implicit class RichOutPortList[A](outPorts: List[OutPort[A]]) {
-    def apply(id: String) = outPorts.find(_.id == id).get
+  implicit class RichOutPortList(outPorts: List[OutPort[_]]) {
+    def apply[A](id: String) = outPorts.find(_.id == id).get.asInstanceOf[OutPort[A]]
   }
 
   trait ComponentInstance extends Scope {
