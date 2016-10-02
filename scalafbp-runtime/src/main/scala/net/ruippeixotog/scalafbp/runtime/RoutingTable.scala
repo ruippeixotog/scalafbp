@@ -115,10 +115,23 @@ class RoutingTable private (
     * @param graph the graph to load into this table.
     * @return a new `RoutingTable` with the given graph loaded.
     */
-  def loadGraph(graph: Graph): RoutingTable = {
-    val newGraph = graph.edges.foldLeft(closeAll) {
+  def loadGraph(graph: Graph, externalNodeId: Option[String] = None): RoutingTable = {
+    val coreGraph = graph.edges.foldLeft(closeAll) {
       case (acc, (src, tgts)) =>
         tgts.keys.foldLeft(acc) { (acc2, tgt) => acc2.openRouteUnchecked(src, tgt) }
+    }
+
+    val withExternals = externalNodeId match {
+      case None => coreGraph
+      case Some(nodeId) =>
+        val withInExternals = graph.publicIn.foldLeft(coreGraph) {
+          case (acc, (public, portInfo)) =>
+            acc.openRouteUnchecked(PortRef(nodeId, public), portInfo.internal)
+        }
+        graph.publicOut.foldLeft(withInExternals) {
+          case (acc, (public, portInfo)) =>
+            acc.openRouteUnchecked(portInfo.internal, PortRef(nodeId, public))
+        }
     }
 
     graph.nodes.foreach {
@@ -126,17 +139,17 @@ class RoutingTable private (
         closedTargetHook.foreach { hook =>
           node.component.inPorts.foreach { inPort =>
             val tgt = PortRef(nodeId, inPort.id)
-            if (newGraph.reverseRoutes(tgt).isEmpty) hook(tgt)
+            if (withExternals.reverseRoutes(tgt).isEmpty) hook(tgt)
           }
         }
         closedSourceHook.foreach { hook =>
           node.component.outPorts.foreach { outPort =>
             val src = PortRef(nodeId, outPort.id)
-            if (newGraph.routes(src).isEmpty) hook(src)
+            if (withExternals.routes(src).isEmpty) hook(src)
           }
         }
     }
-    newGraph
+    withExternals
   }
 
   /**

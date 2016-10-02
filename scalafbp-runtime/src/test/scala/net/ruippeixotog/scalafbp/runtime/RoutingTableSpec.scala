@@ -46,6 +46,30 @@ class RoutingTableSpec extends Specification {
         ref("n3", "out1") -> ref("n4", "in1"))
     }
 
+    "be correctly built off a graph with external ports" in {
+      val graph2 = graph.copy(
+        publicIn = Map("pubIn" -> PublicPort(ref("n2", "in1"))),
+        publicOut = Map("pubOut" -> PublicPort(ref("n2", "out2"))))
+
+      val table2 = RoutingTable().loadGraph(graph2, Some("ext"))
+
+      table2.routes(ref("n1", "out1")).toSet mustEqual Set(ref("n2", "in1"), ref("n3", "in1"))
+      table2.routes(ref("n2", "out1")).toSet mustEqual Set(ref("n4", "in1"))
+      table2.routes(ref("n2", "out2")).toSet mustEqual Set(ref("ext", "pubOut"))
+
+      table2.reverseRoutes(ref("n2", "in1")).toSet mustEqual Set(ref("n1", "out1"), ref("ext", "pubIn"))
+      table2.reverseRoutes(ref("n4", "in1")).toSet mustEqual Set(ref("n2", "out1"), ref("n3", "out1"))
+      table2.reverseRoutes(ref("n3", "in2")).toSet mustEqual Set.empty
+
+      table2.routes.toSet mustEqual Set(
+        ref("n1", "out1") -> ref("n2", "in1"),
+        ref("n1", "out1") -> ref("n3", "in1"),
+        ref("n2", "out1") -> ref("n4", "in1"),
+        ref("n3", "out1") -> ref("n4", "in1"),
+        ref("ext", "pubIn") -> ref("n2", "in1"),
+        ref("n2", "out2") -> ref("ext", "pubOut"))
+    }
+
     "be updated correctly when a route is closed" in {
       val newTable = table.closeRoute(ref("n1", "out1"), ref("n2", "in1"))
       newTable.routes(ref("n1", "out1")).toSet mustEqual Set(ref("n3", "in1"))
