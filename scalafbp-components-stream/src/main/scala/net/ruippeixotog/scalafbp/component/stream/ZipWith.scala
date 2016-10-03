@@ -10,7 +10,6 @@ case object ZipWith extends Component {
   val name = "stream/ZipWith"
   val description = "Combines elements from two streams in pairs using a selector function"
   val icon = Some("dropbox")
-  val isSubgraph = true
 
   val in1Port = InPort[JsValue]("in1", "The first stream")
   val in2Port = InPort[JsValue]("in2", "The second stream")

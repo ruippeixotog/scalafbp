@@ -10,9 +10,7 @@ import net.ruippeixotog.scalafbp.util.NashornEngine
 case object MapConcat extends Component {
   val name = "stream/MapConcat"
   val description = "Transforms the elements of a stream into arrays of elements and flatterns them"
-
   val icon = Some("code")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to transform")
   val funcPort = InPort[String]("func", "The function with argument x to use for transformation. " +

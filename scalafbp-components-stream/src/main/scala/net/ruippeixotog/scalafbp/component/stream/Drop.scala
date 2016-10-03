@@ -9,7 +9,6 @@ case object Drop extends Component {
   val name = "stream/Drop"
   val description = "Drops the first N elements of a stream and emits the remaining ones"
   val icon = Some("filter")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to drop elements from")
   val nPort = InPort[Int]("n", "The number of elements to drop")

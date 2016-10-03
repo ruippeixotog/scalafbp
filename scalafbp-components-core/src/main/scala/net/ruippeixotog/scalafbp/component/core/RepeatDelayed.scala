@@ -12,7 +12,6 @@ case object RepeatDelayed extends Component {
   val name = "core/RepeatDelayed"
   val description = "Forwards packets after a set delay"
   val icon = Some("clock-o")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "Packet to forward with a delay")
   val delayPort = InPort[Long]("delay", "Delay length (ms)")

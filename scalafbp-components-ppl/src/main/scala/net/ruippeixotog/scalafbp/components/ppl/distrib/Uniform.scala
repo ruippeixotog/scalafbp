@@ -12,7 +12,6 @@ case object Uniform extends Component {
   val name = "ppl/distrib/Uniform"
   val description = "Emits a random variable following a uniform distribution"
   val icon = None
-  val isSubgraph = true
 
   val elemsPort = InPort[Set[JsValue]]("elems", "The set of possible outcomes")
   val inPorts = List(elemsPort)

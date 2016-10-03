@@ -6,11 +6,10 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component._
 
-object FromArray extends Component {
+case object FromArray extends Component {
   val name = "stream/FromArray"
   val description = "Receives a stream of arrays and emits each of their elements"
   val icon = None
-  val isSubgraph = true
 
   val arrayPort = InPort[List[JsValue]]("array", "The input stream of arrays")
   val inPorts = List(arrayPort)

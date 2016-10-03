@@ -11,7 +11,6 @@ case object Mean extends Component {
   val name = "ppl/stat/Mean"
   val description = "Emits the mean of a numeric random variable"
   val icon = None
-  val isSubgraph = true
 
   val varPort = InPort[PVar[JsNumber]]("var", "The random variable. Must be numeric")
   val inPorts = List(varPort)

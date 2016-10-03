@@ -12,7 +12,6 @@ case object RunInterval extends Component {
   val name = "core/RunInterval"
   val description = "Sends a signal periodically"
   val icon = Some("clock-o")
-  val isSubgraph = true
 
   val intervalPort = InPort[Long]("interval", "Interval at which signals are emitted (ms)")
   val stopPort = InPort[Unit]("stop", "Stop the emission")

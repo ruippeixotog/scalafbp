@@ -9,7 +9,6 @@ case object Take extends Component {
   val name = "stream/Take"
   val description = "Emits only the first N elements of a stream"
   val icon = Some("filter")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to take elements from")
   val nPort = InPort[Int]("n", "The number of elements to take")

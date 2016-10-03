@@ -6,11 +6,10 @@ import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component._
 
-object ToArray extends Component {
+case object ToArray extends Component {
   val name = "stream/ToArray"
   val description = "Consumes all the packets of a stream to emit a single array"
   val icon = None
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The input stream")
   val inPorts = List(inPort)

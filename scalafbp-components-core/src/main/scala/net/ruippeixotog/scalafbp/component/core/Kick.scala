@@ -9,7 +9,6 @@ case object Kick extends Component {
   val name = "core/Kick"
   val description = "Generates a packet everytime a signal is received"
   val icon = Some("share")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "Packet to be sent")
   val kickPort = InPort[Unit]("kick", "Signal to send the data packet")

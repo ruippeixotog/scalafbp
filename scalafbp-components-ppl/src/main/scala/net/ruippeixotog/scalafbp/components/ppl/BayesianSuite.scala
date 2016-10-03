@@ -13,7 +13,6 @@ case object BayesianSuite extends Component {
   val name = "ppl/BayesianSuite"
   val description = "Performs Bayesian inference as observations are received"
   val icon = Some("cogs")
-  val isSubgraph = true
 
   val priorPort = InPort[Pmf[JsValue]]("prior", "The prior distribution as a random variable")
   val lhoodPort = InPort[String]("lhood", "The likelihood function with arguments (data, hypo) returning the " +

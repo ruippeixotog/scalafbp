@@ -12,7 +12,6 @@ case object MakeFunction extends Component {
     "and sends the return value to the output port"
 
   val icon = Some("forward")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "Packet to be processed")
   val funcPort = InPort[String]("func", "Function to evaluate. The variable 'x' refers to the input; " +

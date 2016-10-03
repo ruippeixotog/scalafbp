@@ -12,7 +12,6 @@ case object PlotXY extends Component {
   val name = "ppl/PlotXY"
   val description = "Plots in a line chart the PMF of a numeric random variable"
   val icon = Some("line-chart")
-  val isSubgraph = true
 
   val varPort = InPort[PVar[JsNumber]]("var", "The random variable to plot. Must be numeric")
   val titlePort = InPort[String]("title", "The chart title")

@@ -10,7 +10,6 @@ case object Filter extends Component {
   val name = "stream/Filter"
   val description = "Emits only the elements of a stream obeying a condition"
   val icon = Some("filter")
-  val isSubgraph = true
 
   val inPort = InPort[JsValue]("in", "The stream to filter")
   val funcPort = InPort[String]("func", "A predicate with arguments (acc, x) used to create the next element. " +
