@@ -107,25 +107,25 @@ class NetworkBroker(
 
   def handleStoreEvent[A](event: GraphStore.Response[A], activeNodes: Int, routingTable: RoutingTable) = event match {
 
-    case GraphStore.Created(key: NodeKey, node: Node) =>
+    case Store.Created(key: NodeKey, node: Node) =>
       nodeActors += key.nodeId -> createNodeActor(key.nodeId, node)
       log.info(s"New node ${key.nodeId} started")
       context.become(brokerBehavior(activeNodes + 1, routingTable))
 
-    case GraphStore.Deleted(NodeKey(_, nodeId), _) =>
+    case Store.Deleted(NodeKey(_, nodeId), _) =>
       // `activeNodes` is only decremented when the `Terminated` message is received
       nodeActors.get(nodeId).foreach(context.stop)
 
-    case GraphStore.Created(EdgeKey(_, src, tgt), _) =>
+    case Store.Created(EdgeKey(_, src, tgt), _) =>
       context.become(brokerBehavior(activeNodes, routingTable.openRoute(src, tgt)))
 
-    case GraphStore.Deleted(EdgeKey(_, src, tgt), _) =>
+    case Store.Deleted(EdgeKey(_, src, tgt), _) =>
       context.become(brokerBehavior(activeNodes, routingTable.closeRoute(src, tgt)))
 
-    case GraphStore.Created(InitialKey(_, tgt), Initial(data, _)) =>
+    case Store.Created(InitialKey(_, tgt), Initial(data, _)) =>
       sendInitial(tgt, data)
 
-    case GraphStore.Deleted(GraphKey(_), _) =>
+    case Store.Deleted(GraphKey(_), _) =>
       context.stop(self)
 
     case _ => // nothing to do here
@@ -201,8 +201,8 @@ class NetworkBroker(
     case External(msg) if externalActorOpt.nonEmpty =>
       handleExternalMessage(msg, externalActorOpt.get, activeNodes, routingTable)
 
-    case GraphStore.Event(ev: GraphStore.Response[_]) if dynamic =>
-      handleStoreEvent(ev, activeNodes, routingTable)
+    case ev: GraphStore.Event[_] @unchecked if dynamic =>
+      handleStoreEvent(ev.res, activeNodes, routingTable)
 
     case Terminated(ref) =>
       actorNodeIds(ref).foreach { node =>
