@@ -23,7 +23,7 @@ class NetworkController(graphId: String, dynamic: Boolean) extends Actor with Ac
     outputActor: ActorRef,
     startTime: Long = System.currentTimeMillis()): Receive = {
 
-    case msg @ GraphStore.Event(_) =>
+    case msg: GraphStore.Event[_] @unchecked =>
       brokerActor ! msg
 
     case GetStatus =>

@@ -16,6 +16,7 @@ import spray.json._
 
 import net.ruippeixotog.scalafbp.component.DummyComponent
 import net.ruippeixotog.scalafbp.runtime.GraphStore._
+import net.ruippeixotog.scalafbp.runtime.Store.{ Key => _, RenamableKey => _, Request => _, Response => _, _ }
 
 class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) with SpecificationLike {
   implicit val timeout = Timeout(3.seconds)
@@ -39,7 +40,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
   }
 
   def beStoreError: Matcher[Any] = PartialFunction[Any, MatchResult[Any]] {
-    case obj: AnyRef => obj must haveClass[Error[_]]
+    case obj: AnyRef => obj must haveClass[Error[_, _]]
     case _ => ko
   }
 

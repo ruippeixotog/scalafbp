@@ -9,12 +9,12 @@ import net.ruippeixotog.scalafbp.runtime.ComponentRegistry
 class MainProtocolActor(
     runtimeId: String,
     secret: String,
-    compRegistry: ComponentRegistry,
+    compRegistry: ActorRef,
     graphStore: ActorRef,
     runtimeConfig: Config) extends AbstractProtocolActor[Message] {
 
   val runtimeProtocolActor = context.actorOf(Props(new RuntimeProtocolActor(runtimeId)))
-  val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor(compRegistry)))
+  val componentProtocolActor = context.actorOf(Props(new ComponentProtocolActor(compRegistry, graphStore)))
   val graphProtocolActor = context.actorOf(Props(new GraphProtocolActor(compRegistry, graphStore)))
   val networkProtocolActor = context.actorOf(Props(new NetworkProtocolActor(graphStore, runtimeConfig)))
   val traceProtocolActor = context.actorOf(Props(new TraceProtocolActor))

@@ -8,7 +8,7 @@ import com.typesafe.config.ConfigFactory
 
 import net.ruippeixotog.scalafbp.http._
 import net.ruippeixotog.scalafbp.protocol.MainProtocolActor
-import net.ruippeixotog.scalafbp.runtime.{ DefaultComponentRegistry, GraphStore }
+import net.ruippeixotog.scalafbp.runtime.{ ComponentLoader, ComponentRegistry, GraphStore }
 
 object Server extends App with WsRuntimeHttpService with RegisterHttpService with RegistryHttpService
     with UiHttpService {
@@ -37,7 +37,7 @@ object Server extends App with WsRuntimeHttpService with RegisterHttpService wit
   val disableUi = config.getBoolean("disable-ui")
 
   // the registry of components that will be made available to clients
-  val compRegistry = DefaultComponentRegistry
+  val compRegistry = system.actorOf(ComponentRegistry.props(ComponentLoader.allInClasspath))
 
   // an object responsible for storing and managing the graph definitions currently in the runtime
   val graphStore = system.actorOf(Props(new GraphStore))

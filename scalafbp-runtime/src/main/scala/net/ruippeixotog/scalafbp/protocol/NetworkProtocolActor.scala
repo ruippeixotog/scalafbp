@@ -13,7 +13,7 @@ import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
 import net.ruippeixotog.scalafbp.runtime.GraphStore.GraphKey
-import net.ruippeixotog.scalafbp.runtime.{ Graph, GraphStore, NetworkBroker, NetworkController }
+import net.ruippeixotog.scalafbp.runtime._
 
 class NetworkProtocolActor(graphStore: ActorRef, runtimeConfig: Config) extends AbstractProtocolActor[NetworkMessage] {
   implicit val timeout = Timeout(3.seconds)
@@ -46,14 +46,14 @@ class NetworkProtocolActor(graphStore: ActorRef, runtimeConfig: Config) extends 
       val sanitizedId = id.replaceAll("[^0-9A-Za-z]", "_")
       // TODO this actor is never terminated, as well as the graph store hook
       val ref = context.actorOf(Props(new NetworkController(id, isDynamic)), s"g-$sanitizedId-controller")
-      if (isDynamic) graphStore ! GraphStore.Watch(id, ref)
+      if (isDynamic) graphStore ! Store.Watch(id, ref)
       controllerActors += id -> ref
       ref
   }
 
   def getGraph(id: String) =
-    (graphStore ? GraphStore.Get(GraphKey(id)))
-      .mapTo[GraphStore.Got[Graph]]
+    (graphStore ? Store.Get(GraphKey(id)))
+      .mapTo[Store.Got[_, Graph]]
       .map(_.entity)
 
   def pipeStatusTo(controllerActor: ActorRef, to: ActorRef, toMessage: NetworkController.Status => NetworkMessage) =
