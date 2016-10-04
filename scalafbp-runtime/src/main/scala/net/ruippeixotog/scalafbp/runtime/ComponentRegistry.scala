@@ -1,64 +1,33 @@
 package net.ruippeixotog.scalafbp.runtime
 
-import java.io.File
-import java.net.URLClassLoader
-
-import scala.reflect.runtime.universe._
-import scala.util.Try
-
-import akka.event.slf4j.SLF4JLogging
-import org.clapper.classutil.ClassFinder
+import akka.actor.Props
+import monocle._
+import monocle.function.At.at
+import monocle.function.all._
+import monocle.std.map._
 
 import net.ruippeixotog.scalafbp.component.Component
 
-trait ComponentRegistry extends Iterable[Component] {
-  def get(id: String): Option[Component]
+class ComponentRegistry extends Store[ComponentRegistry.StoreType](Map.empty) {
+  def domain = { case _ => "" }
 }
 
-class MapComponentRegistry(map: Map[String, Component]) extends ComponentRegistry {
-  def get(id: String) = map.get(id)
-  def iterator = map.valuesIterator
-  override def size = map.size
-}
+object ComponentRegistry {
+  type StoreType = Map[String, Component]
 
-class ClassFinderComponentRegistry extends ComponentRegistry with SLF4JLogging {
-  private[this] val m = runtimeMirror(getClass.getClassLoader)
-  private[this] val finder = ClassFinder()
+  private def compLens(id: String): Lens[StoreType, Option[Component]] = at(id)
 
-  private[this] def newInstance(className: String): Option[Component] = Try {
-    if (className.endsWith("$")) {
-      m.reflectModule(m.staticModule(className.init)).instance.asInstanceOf[Component]
-    } else {
-      Class.forName(className).newInstance().asInstanceOf[Component]
-    }
-  }.toOption
-
-  log.info("Finding component implementations...")
-
-  private[this] val componentMap: Map[String, Component] = {
-
-    def findConcreteSubclasses(supers: Set[String], found: Set[String] = Set.empty): Set[String] = {
-      if (supers.isEmpty) found
-      else {
-        val candidates = finder.getClasses.filter { info =>
-          supers.contains(info.superClassName) || info.interfaces.exists(supers.contains)
-        }
-        val newFound = candidates.filter { info => info.isConcrete && info.isPublic }.map(_.name)
-        val newSupers = candidates.filterNot(_.isFinal).map(_.name)
-
-        findConcreteSubclasses(newSupers.toSet, found ++ newFound)
-      }
-    }
-
-    val componentClasses = findConcreteSubclasses(Set(classOf[Component].getName))
-    componentClasses.flatMap(newInstance).map { comp => comp.name -> comp }.toMap
+  case class ComponentKey(id: String) extends Store.Key[StoreType, Component] {
+    val lens = compLens(id).asOptional
   }
 
-  log.info(s"Found ${componentMap.size} component types")
+  case object ComponentsKey extends Store.ListKey[StoreType, Component] {
+    val lens = each[StoreType, Component]
+  }
 
-  def get(id: String) = componentMap.get(id)
-  def iterator = componentMap.valuesIterator
-  override def size = componentMap.size
+  val props = Props(new ComponentRegistry)
+
+  def props(components: Iterable[Component]) = Props(new ComponentRegistry {
+    components.foreach { comp => self ! Store.Create(ComponentKey(comp.name), comp) }
+  })
 }
-
-object DefaultComponentRegistry extends ClassFinderComponentRegistry

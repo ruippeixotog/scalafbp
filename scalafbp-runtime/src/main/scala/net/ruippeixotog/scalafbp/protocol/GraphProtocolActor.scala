@@ -9,14 +9,16 @@ import akka.pattern.ask
 import akka.util.Timeout
 import spray.json.{ JsNull, JsValue }
 
+import net.ruippeixotog.scalafbp.component.Component
 import net.ruippeixotog.scalafbp.protocol.message.FromMessageConversions._
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessage
 import net.ruippeixotog.scalafbp.protocol.message.GraphMessages._
 import net.ruippeixotog.scalafbp.runtime
+import net.ruippeixotog.scalafbp.runtime.ComponentRegistry.ComponentKey
 import net.ruippeixotog.scalafbp.runtime.GraphStore._
 import net.ruippeixotog.scalafbp.runtime._
 
-class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
+class GraphProtocolActor(compRegistry: ActorRef, graphStore: ActorRef)
     extends AbstractProtocolActor[GraphMessage] {
 
   implicit val timeout = Timeout(3.seconds)
@@ -48,13 +50,15 @@ class GraphProtocolActor(compRegistry: ComponentRegistry, graphStore: ActorRef)
       askStore(Store.Upsert(key, graph)).map(_ => payload)
 
     case payload: AddNode =>
-      compRegistry.get(payload.component) match {
-        case Some(comp) =>
+      val compKey = ComponentKey(payload.component)
+      (compRegistry ? Store.Get(compKey)).mapTo[Store.Got[_, Component]].flatMap {
+
+        case Store.Got(_, Some(comp)) =>
           val key = NodeKey(payload.graph, payload.id)
           val node = runtime.Node(comp, processMetaOpt(payload.metadata))
           askStore(Store.Upsert(key, node)).map(_ => payload)
 
-        case None =>
+        case Store.Got(_, None) =>
           Future.failed(new NoSuchElementException(s"Unknown component ${payload.component}"))
       }
 

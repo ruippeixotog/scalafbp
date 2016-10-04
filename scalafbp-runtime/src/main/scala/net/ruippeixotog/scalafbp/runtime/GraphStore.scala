@@ -6,7 +6,12 @@ import monocle.macros.GenLens
 import monocle.std.map._
 import monocle.{ Iso, Lens, Optional, Traversal }
 
-class GraphStore extends Store[GraphStore.StoreType](Map.empty)
+class GraphStore extends Store[GraphStore.StoreType](Map.empty) {
+  def domain = {
+    case key: GraphStore.Key[_] => key.graphId
+    case _ => throw new IllegalArgumentException(s"Wrong type of key provided")
+  }
+}
 
 object GraphStore {
   type StoreType = Map[String, Graph]
@@ -40,7 +45,6 @@ object GraphStore {
 
   trait Key[A] extends Store.Key[StoreType, A] {
     def graphId: String
-    def domain = graphId
   }
 
   trait RenamableKey[A] extends Key[A] with Store.RenamableKey[StoreType, A]
