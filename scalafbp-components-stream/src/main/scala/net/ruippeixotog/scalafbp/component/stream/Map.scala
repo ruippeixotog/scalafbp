@@ -14,7 +14,7 @@ case object Map extends Component {
 
   val inPort = InPort[JsValue]("in", "The stream to transform")
   val funcPort = InPort[String]("func", "The function with argument x to use for transformation. " +
-    "While not defined, all elements pass untouched.")
+    "While not defined, all elements pass unmodified.")
   val inPorts = List(inPort, funcPort)
 
   val outPort = OutPort[JsValue]("out", "The transformed stream")

@@ -12,7 +12,7 @@ case object Filter extends Component {
   val icon = Some("filter")
 
   val inPort = InPort[JsValue]("in", "The stream to filter")
-  val funcPort = InPort[String]("func", "A predicate with arguments (acc, x) used to create the next element. " +
+  val funcPort = InPort[String]("func", "The predicate with argument x to use for filtering. " +
     "While not defined, all elements pass unfiltered.")
   val inPorts = List(inPort, funcPort)
 
