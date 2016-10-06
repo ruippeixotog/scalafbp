@@ -7,9 +7,10 @@ import monocle.function.all._
 import monocle.std.map._
 
 import net.ruippeixotog.scalafbp.component.Component
+import net.ruippeixotog.scalafbp.runtime.ComponentRegistry.Domain
 
 class ComponentRegistry extends Store[ComponentRegistry.StoreType](Map.empty) {
-  def domain = { case _ => "" }
+  def domains = { case _ => List(Domain.all) }
 }
 
 object ComponentRegistry {
@@ -30,4 +31,8 @@ object ComponentRegistry {
   def props(components: Iterable[Component]) = Props(new ComponentRegistry {
     components.foreach { comp => self ! Store.Create(ComponentKey(comp.name), comp) }
   })
+
+  object Domain {
+    val all = ""
+  }
 }

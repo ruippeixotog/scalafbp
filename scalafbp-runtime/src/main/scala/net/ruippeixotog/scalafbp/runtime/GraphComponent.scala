@@ -7,15 +7,15 @@ import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.runtime.NetworkBroker.External
 
 case class GraphComponent(graph: Graph) extends Component {
-  val name = "scalafbp/" + graph.id
+  val name = GraphComponent.getId(graph)
   val description = s"Executes the graph ${graph.id} as a component"
   val icon = Some("sitemap")
 
-  val inPorts = graph.publicIn.flatMap {
+  lazy val inPorts = graph.publicIn.flatMap {
     case (public, PublicPort(ref, _)) => graph.inPortInfo(ref).map(_.withId(public))
   }.toList
 
-  val outPorts = graph.publicOut.flatMap {
+  lazy val outPorts = graph.publicOut.flatMap {
     case (public, PublicPort(ref, _)) => graph.outPortInfo(ref).map(_.withId(public))
   }.toList
 
@@ -34,4 +34,8 @@ case class GraphComponent(graph: Graph) extends Component {
       case Terminated(`brokerActor`) => context.stop(self)
     }
   })
+}
+
+object GraphComponent {
+  def getId(graph: Graph) = "scalafbp/" + graph.id
 }

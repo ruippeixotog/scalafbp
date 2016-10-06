@@ -12,7 +12,7 @@ abstract class Store[S](initial: S) extends Actor with SLF4JLogging {
   private[this] var store: S = initial
   private[this] var listeners = Map[String, Set[ActorRef]]().withDefaultValue(Set())
 
-  def domain: PartialFunction[AnyRef, String]
+  def domains: PartialFunction[AnyRef, Seq[String]]
 
   def currentValue[A](req: Request[S, A], store: S): Option[Option[A]] = req.key match {
     case key: Key[S, A] @unchecked => key.lens.getOption(store)
@@ -56,7 +56,7 @@ abstract class Store[S](initial: S) extends Actor with SLF4JLogging {
       Try(handleRequest(req, store)) match {
         case Success((res, newGraphs)) =>
           store = newGraphs
-          listeners(domain(req.key)).foreach(_ ! Event(res))
+          domains.lift(req.key).getOrElse(Nil).flatMap(listeners).foreach(_ ! Event(res))
           sender() ! res
 
         case Failure(ex) =>

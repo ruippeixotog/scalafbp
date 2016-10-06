@@ -109,7 +109,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
         s"allow listening to changes on the lifetime of graphs" in new GraphStoreInstance(settings) {
           val probe = TestProbe()
 
-          store ! Watch(existingKey.graphId, probe.ref)
+          store ! Watch(Domain.all, probe.ref)
           store ! Update(existingKey, updated)
           probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
           store ! Delete(existingKey)
@@ -119,18 +119,19 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
       case _ =>
         s"inform graph listeners of changes to ${name}s" in new GraphStoreInstance(settings) {
           val probe = TestProbe()
+          val domain = Domain.graph(existingKey.graphId)
 
-          store ! Watch(existingKey.graphId, probe.ref)
+          store ! Watch(domain, probe.ref)
           store ! Create(missingKey, newEntity)
           probe.expectMsg(Event(Created(missingKey, newEntity)))
           store ! Update(existingKey, updated)
           probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
 
-          store ! Unwatch(existingKey.graphId, probe.ref)
+          store ! Unwatch(domain, probe.ref)
           store ! Update(missingKey, updated)
           probe.expectNoMsg()
 
-          store ! Watch(existingKey.graphId, probe.ref)
+          store ! Watch(domain, probe.ref)
           store ! Delete(existingKey)
           probe.expectMsg(Event(Deleted(existingKey, updated(existingEntity))))
         }

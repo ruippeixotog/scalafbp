@@ -6,10 +6,13 @@ import monocle.macros.GenLens
 import monocle.std.map._
 import monocle.{ Iso, Lens, Optional, Traversal }
 
+import net.ruippeixotog.scalafbp.runtime.GraphStore.Domain
+
 class GraphStore extends Store[GraphStore.StoreType](Map.empty) {
-  def domain = {
-    case key: GraphStore.Key[_] => key.graphId
-    case _ => throw new IllegalArgumentException(s"Wrong type of key provided")
+  def domains = {
+    case key: GraphStore.Key[_] => List(Domain.all, Domain.graph(key.graphId))
+    case GraphStore.GraphsKey => List(Domain.all)
+    case key => throw new IllegalArgumentException(s"Wrong type of key provided: ${key.getClass.getName}")
   }
 }
 
@@ -53,6 +56,10 @@ object GraphStore {
     val lens = graphLens(graphId).asOptional
   }
 
+  case object GraphsKey extends Store.ListKey[StoreType, Graph] {
+    val lens = each[StoreType, Graph]
+  }
+
   case class NodeKey(graphId: String, nodeId: String) extends RenamableKey[Node] {
     val lens = nodeLens(graphId, nodeId)
 
@@ -81,4 +88,9 @@ object GraphStore {
   type Request[A] = Store.Request[StoreType, A]
   type Response[A] = Store.Response[StoreType, A]
   type Event[A] = Store.Event[StoreType, A]
+
+  object Domain {
+    val all = ""
+    def graph(graphId: String) = s"g-$graphId"
+  }
 }
