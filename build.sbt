@@ -9,7 +9,7 @@ lazy val core = projectAt("scalafbp-core").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
       "io.reactivex"                  %% "rxscala"                             % "0.26.2",
       "io.spray"                      %% "spray-json"                          % "1.3.2"))
 
@@ -21,20 +21,20 @@ lazy val runtime = projectAt("scalafbp-runtime").
   settings(uiBuildSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.megard"                     %% "akka-http-cors"                      % "0.1.4",
+      "ch.megard"                     %% "akka-http-cors"                      % "0.1.7",
       "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
       "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
       "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
-      "com.typesafe"                   % "config"                              % "1.3.0",
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.8",
-      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.8",
-      "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.8",
-      "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.8",
-      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.8",
-      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.8",
+      "com.typesafe"                   % "config"                              % "1.3.1",
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
+      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.11",
+      "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.11",
+      "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.11",
+      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.11",
+      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.11",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
-      "org.clapper"                   %% "classutil"                           % "1.0.12",
-      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8"        % "test"))
+      "org.clapper"                   %% "classutil"                           % "1.0.13",
+      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.11"       % "test"))
 
 // -- testkit for components --
 
@@ -43,8 +43,8 @@ lazy val testkit = projectAt("scalafbp-testkit").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.8",
-      "org.specs2"                    %% "specs2-core"                         % "3.8.4"))
+      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.11",
+      "org.specs2"                    %% "specs2-core"                         % "3.8.5"))
 
 // -- component packages --
 
