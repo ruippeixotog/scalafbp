@@ -18,7 +18,7 @@ case object Take extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new ComponentActor(this) {
-    val in = inPort.bufferedStream
+    val in = inPort.stream
     val toTake = nPort.stream.head
 
     toTake.flatMap(in.take).doOnCompleted(context.stop(self)).pipeTo(outPort)

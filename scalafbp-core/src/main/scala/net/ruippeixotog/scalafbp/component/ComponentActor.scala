@@ -1,7 +1,9 @@
 package net.ruippeixotog.scalafbp.component
 
 import akka.actor.Actor
-import rx.lang.scala.{ Observable, Subject }
+import rx.lang.scala.JavaConverters._
+import rx.lang.scala.Observable
+import rx.subjects.UnicastSubject
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 
@@ -10,7 +12,7 @@ abstract class ComponentActor[C <: Component](val component: C) extends Actor {
   private[this] var openInPorts = component.inPorts.map(_.id).toSet
   private[this] var openOutPorts = component.outPorts.map(_.id).toSet
   private[this] val deadLetters = context.system.deadLetters
-  private[this] val subjects = component.inPorts.map(_.id -> Subject[Any]()).toMap
+  private[this] val subjects = component.inPorts.map(_.id -> UnicastSubject.create[Any]()).toMap
 
   final def broker = Option(context).fold(deadLetters)(_.parent)
 
@@ -20,14 +22,7 @@ abstract class ComponentActor[C <: Component](val component: C) extends Actor {
     else List(OnAllInputPortsClosed, OnAllOutputPortsClosed)
 
   implicit final class RxEnabledInPort[A](inPort: InPort[A]) {
-    def stream: Observable[A] = subjects(inPort.id).asInstanceOf[Subject[A]]
-
-    def bufferedStream: Observable[A] = {
-      // TODO this will cache *all* messages *forever*, not just until the first subscriber connects
-      val str = stream.replay
-      str.connect
-      str
-    }
+    def stream = subjects(inPort.id).asObservable.asScala.asInstanceOf[Observable[A]]
   }
 
   implicit final class PipeableObservable[A](obs: Observable[A]) {

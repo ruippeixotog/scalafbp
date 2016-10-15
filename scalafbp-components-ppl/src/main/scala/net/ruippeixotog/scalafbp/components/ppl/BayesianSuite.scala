@@ -24,7 +24,7 @@ case object BayesianSuite extends Component {
   val outPorts = List(posteriorPort)
 
   val instanceProps = Props(new ComponentActor(this) with NashornEngine {
-    val obs = obsPort.bufferedStream
+    val obs = obsPort.stream
     val prior = priorPort.stream.head.map(_.toPmf)
     val lhood = lhoodPort.stream.head.map(JsFunction2.typed[JsValue, JsValue, Double](_, "data", "hypo"))
 
