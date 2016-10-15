@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.components.ppl.stat
+package net.ruippeixotog.scalafbp.component.ppl.stat
 
 import spray.json._
 import thinkbayes.Pmf

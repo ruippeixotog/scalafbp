@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.components.ppl.stat
+package net.ruippeixotog.scalafbp.component.ppl.stat
 
 import akka.actor.Props
 import spray.json.JsNumber

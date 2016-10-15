@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.components.ppl
+package net.ruippeixotog.scalafbp.component.ppl
 
 import org.specs2.matcher.Matcher
 import spray.json._

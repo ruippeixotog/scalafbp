@@ -1,4 +1,4 @@
-package net.ruippeixotog.scalafbp.components.ppl.distrib
+package net.ruippeixotog.scalafbp.component.ppl.distrib
 
 import thinkbayes.Pmf
 import thinkbayes.extensions.Distributions._
