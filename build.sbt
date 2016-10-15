@@ -10,7 +10,7 @@ lazy val core = projectAt("scalafbp-core").
   settings(
     libraryDependencies ++= Seq(
       "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
-      "io.reactivex"                  %% "rxscala"                             % "0.26.2",
+      "io.reactivex"                  %% "rxscala"                             % "0.26.3",
       "io.spray"                      %% "spray-json"                          % "1.3.2"))
 
 // -- runtime --

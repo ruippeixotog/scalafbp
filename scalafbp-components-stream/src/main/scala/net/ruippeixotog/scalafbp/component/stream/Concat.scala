@@ -18,6 +18,6 @@ case object Concat extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new ComponentActor(this) {
-    (in1Port.stream ++ in2Port.bufferedStream).pipeTo(outPort)
+    (in1Port.stream ++ in2Port.stream).pipeTo(outPort)
   })
 }

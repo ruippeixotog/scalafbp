@@ -24,7 +24,7 @@ class DropSpec extends ComponentSpec with AutoTerminateSpec {
       Drop.outPort must receive(JsNumber(10))
     }
 
-    "Dropping the correct elements even if n is only known afterwards" in new ComponentInstance {
+    "drop the correct elements even if n is only known afterwards" in new ComponentInstance {
       Drop.inPort.send(JsNumber(3))
       Drop.inPort.send(JsNumber(5))
       Drop.outPort must receiveNothing

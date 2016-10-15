@@ -18,7 +18,7 @@ case object Drop extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new ComponentActor(this) {
-    val in = inPort.bufferedStream
+    val in = inPort.stream
     val toDrop = nPort.stream.head
 
     toDrop.flatMap(in.drop).pipeTo(outPort)

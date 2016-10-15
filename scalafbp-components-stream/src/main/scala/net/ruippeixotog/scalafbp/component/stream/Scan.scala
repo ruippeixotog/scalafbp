@@ -20,7 +20,7 @@ case object Scan extends Component {
   val outPorts = List(outPort)
 
   val instanceProps = Props(new ComponentActor(this) with NashornEngine {
-    val in = inPort.bufferedStream
+    val in = inPort.stream
     val initial = initialPort.stream.head
     val func = funcPort.stream.head.map(JsFunction2(_, "acc", "x"))
 
