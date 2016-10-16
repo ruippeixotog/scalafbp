@@ -3,22 +3,22 @@ package net.ruippeixotog.scalafbp.runtime
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
-import akka.actor.{ ActorRef, ActorSystem, Props }
+import akka.actor.{ ActorRef, Props }
 import akka.pattern.ask
-import akka.testkit.{ TestKit, TestProbe }
+import akka.testkit.TestProbe
 import akka.util.Timeout
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.{ MatchResult, Matcher }
-import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
 import org.specs2.specification.core.Fragment
 import spray.json._
 
+import net.ruippeixotog.akka.testkit.specs2.mutable.AkkaSpecification
 import net.ruippeixotog.scalafbp.component.DummyComponent
 import net.ruippeixotog.scalafbp.runtime.GraphStore._
 import net.ruippeixotog.scalafbp.runtime.Store.{ Key => _, RenamableKey => _, Request => _, Response => _, _ }
 
-class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) with SpecificationLike {
+class GraphStoreSpec(implicit env: ExecutionEnv) extends AkkaSpecification {
   implicit val timeout = Timeout(3.seconds)
 
   trait TestSettings[A] {
@@ -111,9 +111,9 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
 
           store ! Watch(Domain.all, probe.ref)
           store ! Update(existingKey, updated)
-          probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
+          probe must receive(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
           store ! Delete(existingKey)
-          probe.expectMsg(Event(Deleted(existingKey, updated(existingEntity))))
+          probe must receive(Event(Deleted(existingKey, updated(existingEntity))))
         }
 
       case _ =>
@@ -123,17 +123,17 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends TestKit(ActorSystem()) 
 
           store ! Watch(domain, probe.ref)
           store ! Create(missingKey, newEntity)
-          probe.expectMsg(Event(Created(missingKey, newEntity)))
+          probe must receive(Event(Created(missingKey, newEntity)))
           store ! Update(existingKey, updated)
-          probe.expectMsg(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
+          probe must receive(Event(Updated(existingKey, existingEntity, updated(existingEntity))))
 
           store ! Unwatch(domain, probe.ref)
           store ! Update(missingKey, updated)
-          probe.expectNoMsg()
+          probe must not(receiveMessage)
 
           store ! Watch(domain, probe.ref)
           store ! Delete(existingKey)
-          probe.expectMsg(Event(Deleted(existingKey, updated(existingEntity))))
+          probe must receive(Event(Deleted(existingKey, updated(existingEntity))))
         }
     }
   }

@@ -15,13 +15,13 @@ class MedianSpec extends ComponentSpec with AutoTerminateSpec {
 
     "Emit the median of each random variable it receives" in new ComponentInstance {
       Median.varPort.send(Pmf("a".toJson -> 0.3, "b".toJson -> 0.3, "c".toJson -> 0.4).toPVar)
-      Median.medianPort must receive("b".toJson)
+      Median.medianPort must emit("b".toJson)
 
       Median.varPort.send(binomialPmf(15, 0.4).mapKeys(_.toJson).toPVar)
-      Median.medianPort must receive(6.toJson)
+      Median.medianPort must emit(6.toJson)
 
       Median.varPort.send(PVar.const(3.toJson))
-      Median.medianPort must receive(3.toJson)
+      Median.medianPort must emit(3.toJson)
     }
 
     terminateItselfWhenAllInPortsAreClosed

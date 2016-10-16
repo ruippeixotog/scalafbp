@@ -11,26 +11,26 @@ class MakeFunctionSpec extends ComponentSpec with AutoTerminateSpec {
 
     "not output anything until the function is known" in new ComponentInstance {
       MakeFunction.inPort.send(JsNumber(3.0))
-      MakeFunction.outPort must receiveNothing
+      MakeFunction.outPort must emitNothing
     }
 
     "correctly compile a function and run against inputs" in new ComponentInstance {
       MakeFunction.funcPort.send("return x * 2")
       MakeFunction.inPort.send(JsNumber(3.0))
-      MakeFunction.outPort must receive(JsNumber(6.0))
+      MakeFunction.outPort must emit(JsNumber(6.0))
 
       MakeFunction.inPort.send(JsNumber(8))
-      MakeFunction.outPort must receive(JsNumber(16))
+      MakeFunction.outPort must emit(JsNumber(16))
     }
 
     "update the mapping function if a new one is received" in new ComponentInstance {
       MakeFunction.funcPort.send("return x + 'abc'")
       MakeFunction.inPort.send(JsString("aaa"))
-      MakeFunction.outPort must receive(JsString("aaaabc"))
+      MakeFunction.outPort must emit(JsString("aaaabc"))
 
       MakeFunction.funcPort.send("return !x")
       MakeFunction.inPort.send(JsFalse)
-      MakeFunction.outPort must receive(JsTrue)
+      MakeFunction.outPort must emit(JsTrue)
     }
 
     terminateItselfWhenAllInPortsAreClosed

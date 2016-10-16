@@ -44,10 +44,10 @@ class GraphComponentSpec extends ComponentSpec {
 
     "execute a graph and work as a single component" in new GraphComponentInstance(repeatGraph) {
       component.inPorts("pubIn").send(JsNumber(2))
-      component.outPorts("pubOut") must receive(JsNumber(5))
+      component.outPorts("pubOut") must emit(JsNumber(5))
 
       component.inPorts("pubIn").send(JsNumber(17.5))
-      component.outPorts("pubOut") must receive(JsNumber(36))
+      component.outPorts("pubOut") must emit(JsNumber(36))
 
       this must not(terminate())
     }

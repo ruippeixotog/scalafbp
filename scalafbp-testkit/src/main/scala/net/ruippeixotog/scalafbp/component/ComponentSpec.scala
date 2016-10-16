@@ -1,19 +1,20 @@
 package net.ruippeixotog.scalafbp.component
 
 import scala.concurrent.duration._
+import scala.reflect.ClassTag
 
 import akka.actor.SupervisorStrategy._
 import akka.actor._
-import akka.testkit.{ TestActorRef, TestKit, TestProbe }
+import akka.testkit.{ TestActorRef, TestProbe }
 import org.specs2.execute.AsResult
 import org.specs2.matcher.Matcher
-import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Scope
 
+import net.ruippeixotog.akka.testkit.specs2.mutable.AkkaSpecification
 import net.ruippeixotog.scalafbp.component.ComponentActor._
 import net.ruippeixotog.scalafbp.component.ComponentSpec.TestBrokerSupervisorStrategy
 
-abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLike {
+abstract class ComponentSpec extends AkkaSpecification {
   def component: Component
 
   implicit class RichInPortList(inPorts: List[InPort[_]]) {
@@ -54,64 +55,57 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
       def close(): Unit = componentActor ! OutPortDisconnected(outPort.id)
     }
 
-    def receive[A](data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsg(Outgoing(outPort.id, data)) must not(throwAn[Exception])
+    def emit[A](data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receive(Outgoing(outPort.id, data))
     }
 
-    def receive[A](max: FiniteDuration, data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsg(max, Outgoing(outPort.id, data)) must not(throwAn[Exception])
+    def emit[A](max: FiniteDuration, data: A): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receiveWithin(max)(Outgoing(outPort.id, data))
     }
 
-    def receiveAllOf[A](data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgAllOf(data.map(Outgoing(outPort.id, _)): _*) must not(throwAn[Exception])
+    def emitAllOf[A](data1: A, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receive.allOf(
+        Outgoing(outPort.id, data1), data.map(Outgoing(outPort.id, _)): _*)
     }
 
-    def receiveAllOf[A](max: FiniteDuration, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgAllOf(max, data.map(Outgoing(outPort.id, _)): _*) must not(throwAn[Exception])
+    def emitAllOf[A](max: FiniteDuration, data1: A, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receiveWithin(max).allOf(
+        Outgoing(outPort.id, data1), data.map(Outgoing(outPort.id, _)): _*)
     }
 
-    def receiveWhich[A, R: AsResult](f: A => R): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgPF() {
-        case Outgoing(outPort.id, data: A @unchecked) => f(data)
-      } must not(throwAn[Exception])
+    def emitLike[A: ClassTag, R: AsResult](f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receive.like {
+        case Outgoing(outPort.id, data: A) if f.isDefinedAt(data) => f(data)
+      }
     }
 
-    def receiveWhich[A, R: AsResult](max: FiniteDuration)(f: A => R): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgPF(max) {
-        case Outgoing(outPort.id, data: A @unchecked) => f(data)
-      } must not(throwAn[Exception])
+    def emitLike[A: ClassTag, R: AsResult](max: FiniteDuration)(f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receiveWithin(max).like {
+        case Outgoing(outPort.id, data: A) if f.isDefinedAt(data) => f(data)
+      }
     }
 
-    def receiveLike[A, R: AsResult](f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgPF() {
-        case Outgoing(outPort.id, data: A @unchecked) if f.isDefinedAt(data) => f(data)
-      } must not(throwAn[Exception])
+    def emitWhich[A: ClassTag, R: AsResult](f: A => R) = emitLike(PartialFunction(f))
+    def emitWhich[A: ClassTag, R: AsResult](max: FiniteDuration)(f: A => R) = emitLike(max)(PartialFunction(f))
+
+    def emitNothing[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must not(receiveMessage)
     }
 
-    def receiveLike[A, R: AsResult](max: FiniteDuration)(f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsgPF(max) {
-        case Outgoing(outPort.id, data: A @unchecked) if f.isDefinedAt(data) => f(data)
-      } must not(throwAn[Exception])
-    }
-
-    def receiveNothing[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectNoMsg() must not(throwAn[Exception])
-    }
-
-    def receiveNothing[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectNoMsg(max) must not(throwAn[Exception])
+    def emitNothing[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must not(receiveMessageWithin(max))
     }
 
     def beClosed[A]: Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsg(DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
+      outPortProbes(outPort.id) must receive(DisconnectOutPort(outPort.id))
     }
 
     def beClosed[A](max: FiniteDuration): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id).expectMsg(max, DisconnectOutPort(outPort.id)) must not(throwAn[Exception])
+      outPortProbes(outPort.id) must receiveWithin(max)(DisconnectOutPort(outPort.id))
     }
 
     def sendOutput(msg: String): Matcher[ComponentInstance] = { instance: ComponentInstance =>
-      outputProbe.expectMsg(ComponentActor.Message(msg)) must not(throwAn[Exception])
+      outputProbe must receive(ComponentActor.Message(msg))
     }
 
     def terminate(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
@@ -120,7 +114,7 @@ abstract class ComponentSpec extends TestKit(ActorSystem()) with SpecificationLi
 
     def terminateWithProcessError(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
       componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
-      processErrorProbe.expectMsgType[Throwable] must not(throwAn[Exception])
+      processErrorProbe must receive[Throwable]
     }
   }
 }

@@ -12,14 +12,14 @@ class ToArraySpec extends ComponentSpec with AutoTerminateSpec {
     "Accumulate packets as packets are received from the input" in new ComponentInstance {
       ToArray.inPort.send(JsTrue)
       ToArray.inPort.send(JsNumber(3.0))
-      ToArray.arrayPort must receiveNothing
+      ToArray.arrayPort must emitNothing
     }
 
     "Send the accumulated array immediatly after the in port closes" in new ComponentInstance {
       ToArray.inPort.send(JsTrue)
       ToArray.inPort.send(JsNumber(3.0))
       ToArray.inPort.close()
-      ToArray.arrayPort must receive(List(JsTrue, JsNumber(3.0)))
+      ToArray.arrayPort must emit(List(JsTrue, JsNumber(3.0)))
     }
 
     terminateItselfWhenAllInPortsAreClosed

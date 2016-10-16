@@ -34,7 +34,7 @@ lazy val runtime = projectAt("scalafbp-runtime").
       "com.typesafe.akka"             %% "akka-stream"                         % "2.4.11",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
       "org.clapper"                   %% "classutil"                           % "1.0.13",
-      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.11"       % "test"))
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "2.4.11-SNAPSHOT"       % "test"))
 
 // -- testkit for components --
 
@@ -43,7 +43,7 @@ lazy val testkit = projectAt("scalafbp-testkit").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"             %% "akka-testkit"                        % "2.4.11",
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "2.4.11-SNAPSHOT",
       "org.specs2"                    %% "specs2-core"                         % "3.8.5"))
 
 // -- component packages --

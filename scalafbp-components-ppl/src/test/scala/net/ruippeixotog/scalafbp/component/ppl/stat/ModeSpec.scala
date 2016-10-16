@@ -15,13 +15,13 @@ class ModeSpec extends ComponentSpec with AutoTerminateSpec {
 
     "Emit the mode of each random variable it receives" in new ComponentInstance {
       Mode.varPort.send(Pmf("a".toJson -> 0.3, "b".toJson -> 0.3, "c".toJson -> 0.4).toPVar)
-      Mode.modePort must receive("c".toJson)
+      Mode.modePort must emit("c".toJson)
 
       Mode.varPort.send(binomialPmf(15, 0.4).mapKeys(_.toJson).toPVar)
-      Mode.modePort must receive(6.toJson)
+      Mode.modePort must emit(6.toJson)
 
       Mode.varPort.send(PVar.const(3.toJson))
-      Mode.modePort must receive(3.toJson)
+      Mode.modePort must emit(3.toJson)
     }
 
     terminateItselfWhenAllInPortsAreClosed

@@ -11,10 +11,10 @@ class RepeatSpec extends ComponentSpec with AutoTerminateSpec {
 
     "forward every packet it receives to the out port" in new ComponentInstance {
       Repeat.inPorts("in").send("2".parseJson)
-      Repeat.outPorts("out") must receive("2".parseJson)
+      Repeat.outPorts("out") must emit("2".parseJson)
 
       Repeat.inPorts("in").send("[1,2]".parseJson)
-      Repeat.outPorts("out") must receive("[1,2]".parseJson)
+      Repeat.outPorts("out") must emit("[1,2]".parseJson)
 
       this must not(terminate())
     }

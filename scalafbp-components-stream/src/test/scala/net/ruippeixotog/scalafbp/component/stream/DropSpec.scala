@@ -11,27 +11,27 @@ class DropSpec extends ComponentSpec with AutoTerminateSpec {
 
     "not output anything until the number of elements to drop is known" in new ComponentInstance {
       Drop.inPort.send(JsNumber(3))
-      Drop.outPort must receiveNothing
+      Drop.outPort must emitNothing
     }
 
     "emit only the input elements after the first n ones" in new ComponentInstance {
       Drop.nPort.send(2)
       Drop.inPort.send(JsNumber(3))
-      Drop.outPort must receiveNothing
+      Drop.outPort must emitNothing
       Drop.inPort.send(JsNumber(1))
-      Drop.outPort must receiveNothing
+      Drop.outPort must emitNothing
       Drop.inPort.send(JsNumber(10))
-      Drop.outPort must receive(JsNumber(10))
+      Drop.outPort must emit(JsNumber(10))
     }
 
     "drop the correct elements even if n is only known afterwards" in new ComponentInstance {
       Drop.inPort.send(JsNumber(3))
       Drop.inPort.send(JsNumber(5))
-      Drop.outPort must receiveNothing
+      Drop.outPort must emitNothing
 
       Drop.nPort.send(1)
-      Drop.outPort must receive(JsNumber(5))
-      Drop.outPort must receiveNothing
+      Drop.outPort must emit(JsNumber(5))
+      Drop.outPort must emitNothing
     }
 
     "terminate with a ProcessError if no number of elements is sent" in new ComponentInstance {

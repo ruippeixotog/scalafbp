@@ -11,27 +11,27 @@ class TakeSpec extends ComponentSpec with AutoTerminateSpec {
 
     "not output anything until the number of elements to take is known" in new ComponentInstance {
       Take.inPort.send(JsNumber(3))
-      Take.outPort must receiveNothing
+      Take.outPort must emitNothing
     }
 
     "start emitting the input elements immediately after n is known" in new ComponentInstance {
       Take.inPort.send(JsNumber(3))
       Take.inPort.send(JsNumber(5))
-      Take.outPort must receiveNothing
+      Take.outPort must emitNothing
 
       Take.nPort.send(3)
-      Take.outPort must receive(JsNumber(3))
-      Take.outPort must receive(JsNumber(5))
+      Take.outPort must emit(JsNumber(3))
+      Take.outPort must emit(JsNumber(5))
     }
 
     "emit at most the first n elements of the input" in new ComponentInstance {
       Take.nPort.send(2)
       Take.inPort.send(JsNumber(3))
-      Take.outPort must receive(JsNumber(3))
+      Take.outPort must emit(JsNumber(3))
       Take.inPort.send(JsNumber(1))
-      Take.outPort must receive(JsNumber(1))
+      Take.outPort must emit(JsNumber(1))
       Take.inPort.send(JsNumber(10))
-      Take.outPort must receiveNothing
+      Take.outPort must emitNothing
     }
 
     "terminate after n elements are sent to the output" in new ComponentInstance {

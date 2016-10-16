@@ -19,10 +19,10 @@ class OutputSpec extends ComponentSpec with AutoTerminateSpec {
 
     "forward every packet it receives to the out port" in new ComponentInstance {
       Output.inPorts("in").send("2".parseJson)
-      Output.outPorts("out") must receive("2".parseJson)
+      Output.outPorts("out") must emit("2".parseJson)
 
       Output.inPorts("in").send("[1,2]".parseJson)
-      Output.outPorts("out") must receive("[1,2]".parseJson)
+      Output.outPorts("out") must emit("[1,2]".parseJson)
 
       this must not(terminate())
     }

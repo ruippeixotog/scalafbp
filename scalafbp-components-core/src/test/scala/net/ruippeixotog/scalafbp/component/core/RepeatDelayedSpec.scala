@@ -13,7 +13,7 @@ class RepeatDelayedSpec extends ComponentSpec with AutoTerminateSpec {
 
     "not repeat anything until the delay is known" in new ComponentInstance {
       RepeatDelayed.inPort.send(JsNumber(3))
-      RepeatDelayed.outPort must receiveNothing
+      RepeatDelayed.outPort must emitNothing
     }
 
     "forward every packet it receives to the out port with a delay" in new ComponentInstance {
@@ -21,13 +21,13 @@ class RepeatDelayedSpec extends ComponentSpec with AutoTerminateSpec {
 
       RepeatDelayed.inPort.send(JsNumber(2))
       within(250.millis, 750.millis) {
-        RepeatDelayed.outPort must receive(JsNumber(2))
+        RepeatDelayed.outPort must emit(JsNumber(2))
       }
 
       RepeatDelayed.inPort.send(JsNumber(3))
       RepeatDelayed.inPort.send(JsString("Hello"))
       within(250.millis, 750.millis) {
-        RepeatDelayed.outPort must receiveAllOf(JsNumber(3), JsString("Hello"))
+        RepeatDelayed.outPort must emitAllOf(JsNumber(3), JsString("Hello"))
       }
     }
 
@@ -39,9 +39,9 @@ class RepeatDelayedSpec extends ComponentSpec with AutoTerminateSpec {
       RepeatDelayed.delayPort.send(1000)
       RepeatDelayed.inPort.send(JsNumber(3))
 
-      RepeatDelayed.outPort must receive(JsNumber(2))
-      RepeatDelayed.outPort must receive(JsNumber(3))
-      RepeatDelayed.outPort must receive(JsNumber(1))
+      RepeatDelayed.outPort must emit(JsNumber(2))
+      RepeatDelayed.outPort must emit(JsNumber(3))
+      RepeatDelayed.outPort must emit(JsNumber(1))
     }
 
     terminateItselfWhenAllInPortsAreClosed

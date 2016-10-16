@@ -30,34 +30,34 @@ class BayesianSuiteSpec extends ComponentSpec with AutoTerminateSpec {
     "not output anything until the prior is known" in new ComponentInstance {
       BayesianSuite.lhoodPort.send(likelihoodJs)
       BayesianSuite.obsPort.send(JsNumber(4))
-      BayesianSuite.posteriorPort must receiveNothing
+      BayesianSuite.posteriorPort must emitNothing
     }
 
     "not output anything until the likelihood function is known" in new ComponentInstance {
       BayesianSuite.priorPort.send(prior.toJsonPmf)
       BayesianSuite.obsPort.send(JsNumber(4))
-      BayesianSuite.posteriorPort must receiveNothing
+      BayesianSuite.posteriorPort must emitNothing
     }
 
     "output the prior first when both initial parameters are known" in new ComponentInstance {
       BayesianSuite.priorPort.send(prior.toJsonPmf)
       BayesianSuite.lhoodPort.send(likelihoodJs)
-      BayesianSuite.posteriorPort must receive(prior.toJsonPmf)
+      BayesianSuite.posteriorPort must emit(prior.toJsonPmf)
     }
 
     "output the updated posterior as new observations arrive" in new ComponentInstance {
       BayesianSuite.priorPort.send(prior.toJsonPmf)
       BayesianSuite.lhoodPort.send(likelihoodJs)
-      BayesianSuite.posteriorPort must receive(prior.toJsonPmf)
+      BayesianSuite.posteriorPort must emit(prior.toJsonPmf)
 
       BayesianSuite.obsPort.send(JsNumber(6))
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6).pmf.toJsonPmf))
 
       BayesianSuite.obsPort.send(JsNumber(4))
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6, 4).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6, 4).pmf.toJsonPmf))
 
       BayesianSuite.obsPort.send(JsNumber(8))
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6, 4, 8).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6, 4, 8).pmf.toJsonPmf))
     }
 
     "consider observations arrived before the initial parameters are known" in new ComponentInstance {
@@ -67,10 +67,10 @@ class BayesianSuiteSpec extends ComponentSpec with AutoTerminateSpec {
 
       BayesianSuite.priorPort.send(prior.toJsonPmf)
       BayesianSuite.lhoodPort.send(likelihoodJs)
-      BayesianSuite.posteriorPort must receive(prior.toJsonPmf)
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6).pmf.toJsonPmf))
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6, 4).pmf.toJsonPmf))
-      BayesianSuite.posteriorPort must receiveWhich(_ must beCloseTo(diceSuite.observed(6, 4, 8).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emit(prior.toJsonPmf)
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6, 4).pmf.toJsonPmf))
+      BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6, 4, 8).pmf.toJsonPmf))
     }
 
     "terminate with a ProcessError if no data is received on the prior port" in new ComponentInstance {

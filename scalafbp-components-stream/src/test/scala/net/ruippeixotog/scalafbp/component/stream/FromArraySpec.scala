@@ -11,16 +11,16 @@ class FromArraySpec extends ComponentSpec with AutoTerminateSpec {
 
     "Emit each element of the arrays as they are received" in new ComponentInstance {
       FromArray.arrayPort.send(List(JsTrue, JsFalse))
-      FromArray.outPort must receive(JsTrue)
-      FromArray.outPort must receive(JsFalse)
-      FromArray.outPort must receiveNothing
+      FromArray.outPort must emit(JsTrue)
+      FromArray.outPort must emit(JsFalse)
+      FromArray.outPort must emitNothing
 
       FromArray.arrayPort.send(List(JsArray(JsNumber(3.0))))
-      FromArray.outPort must receive(JsArray(JsNumber(3.0)))
-      FromArray.outPort must receiveNothing
+      FromArray.outPort must emit(JsArray(JsNumber(3.0)))
+      FromArray.outPort must emitNothing
 
       FromArray.arrayPort.send(Nil)
-      FromArray.outPort must receiveNothing
+      FromArray.outPort must emitNothing
     }
 
     terminateItselfWhenAllInPortsAreClosed

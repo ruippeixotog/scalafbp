@@ -13,41 +13,41 @@ class ZipWithSpec extends ComponentSpec with AutoTerminateSpec {
       ZipWith.selectorPort.send("return x1")
       ZipWith.in2Port.send(JsTrue)
       ZipWith.in2Port.send(JsNumber(3.0))
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
       ZipWith.in2Port.close()
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
     }
 
     "not output anything until the second stream sends elements" in new ComponentInstance {
       ZipWith.selectorPort.send("return x1")
       ZipWith.in1Port.send(JsTrue)
       ZipWith.in1Port.send(JsNumber(3.0))
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
       ZipWith.in1Port.close()
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
     }
 
     "not output anything until the selector is known" in new ComponentInstance {
       ZipWith.in1Port.send(JsTrue)
       ZipWith.in2Port.send(JsNumber(3))
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
     }
 
     "output the result of the selector function as pairs of input elements are available" in new ComponentInstance {
       ZipWith.selectorPort.send("""return { "a": x1, "b": x2 }""")
       ZipWith.in1Port.send(JsTrue)
       ZipWith.in2Port.send(JsNumber(3))
-      ZipWith.outPort must receive(JsObject("a" -> JsTrue, "b" -> JsNumber(3)))
+      ZipWith.outPort must emit(JsObject("a" -> JsTrue, "b" -> JsNumber(3)))
 
       ZipWith.in1Port.send(JsNumber(6))
       ZipWith.in1Port.send(JsNull)
-      ZipWith.outPort must receiveNothing
+      ZipWith.outPort must emitNothing
 
       ZipWith.in2Port.send(JsNumber(5))
-      ZipWith.outPort must receive(JsObject("a" -> JsNumber(6), "b" -> JsNumber(5)))
+      ZipWith.outPort must emit(JsObject("a" -> JsNumber(6), "b" -> JsNumber(5)))
 
       ZipWith.in2Port.send(JsFalse)
-      ZipWith.outPort must receive(JsObject("a" -> JsNull, "b" -> JsFalse))
+      ZipWith.outPort must emit(JsObject("a" -> JsNull, "b" -> JsFalse))
     }
 
     "terminate with a ProcessError if no data is received on the selector port" in new ComponentInstance {

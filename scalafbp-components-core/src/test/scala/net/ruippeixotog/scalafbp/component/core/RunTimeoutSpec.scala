@@ -12,14 +12,14 @@ class RunTimeoutSpec extends ComponentSpec with AutoTerminateSpec {
   "A RunTimeout component" should {
 
     "do nothing until an interval value is received" in new ComponentInstance {
-      RunTimeout.outPort must receiveNothing
+      RunTimeout.outPort must emitNothing
       this must not(terminate())
     }
 
     "emit a single signal and terminate after a time value is received" in new ComponentInstance {
       RunTimeout.timePort.send(500)
       within(250.millis, 750.millis) {
-        RunTimeout.outPort must receive(())
+        RunTimeout.outPort must emit(())
       }
       this must terminate()
     }
@@ -28,15 +28,15 @@ class RunTimeoutSpec extends ComponentSpec with AutoTerminateSpec {
       RunTimeout.timePort.send(1000)
       RunTimeout.timePort.send(200)
       within(750.millis, 1250.millis) {
-        RunTimeout.outPort must receive(())
+        RunTimeout.outPort must emit(())
       }
-      RunTimeout.outPort must receiveNothing
+      RunTimeout.outPort must emitNothing
       this must terminate()
     }
 
     "terminate immediately if no interval is sent" in new ComponentInstance {
       RunTimeout.timePort.close()
-      RunTimeout.outPort must receiveNothing
+      RunTimeout.outPort must emitNothing
       this must terminate()
     }
 
