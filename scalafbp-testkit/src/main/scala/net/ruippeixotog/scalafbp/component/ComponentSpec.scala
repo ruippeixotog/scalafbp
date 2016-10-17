@@ -63,14 +63,12 @@ abstract class ComponentSpec extends AkkaSpecification {
       outPortProbes(outPort.id) must receiveWithin(max)(Outgoing(outPort.id, data))
     }
 
-    def emitAllOf[A](data1: A, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id) must receive.allOf(
-        Outgoing(outPort.id, data1), data.map(Outgoing(outPort.id, _)): _*)
+    def emitAllOf[A](data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
+      outPortProbes(outPort.id) must receive.allOf(data.map(Outgoing(outPort.id, _)): _*)
     }
 
     def emitAllOf[A](max: FiniteDuration, data1: A, data: A*): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
-      outPortProbes(outPort.id) must receiveWithin(max).allOf(
-        Outgoing(outPort.id, data1), data.map(Outgoing(outPort.id, _)): _*)
+      outPortProbes(outPort.id) must receiveWithin(max).allOf(data.map(Outgoing(outPort.id, _)): _*)
     }
 
     def emitLike[A: ClassTag, R: AsResult](f: PartialFunction[A, R]): Matcher[OutPort[A]] = { outPort: OutPort[A] =>
