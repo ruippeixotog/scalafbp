@@ -1,73 +1,147 @@
 package net.ruippeixotog.scalafbp.runtime
 
-import akka.actor.{ Actor, Props }
+import akka.actor.{ Actor, Props, Terminated }
 import akka.testkit.TestProbe
-import spray.json.JsString
+import org.specs2.specification.Scope
+import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 import net.ruippeixotog.akka.testkit.specs2.mutable.AkkaSpecification
-import net.ruippeixotog.scalafbp.component.{ Component, DummyComponent }
+import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing }
+import net.ruippeixotog.scalafbp.component.PortDataMarshaller
+import net.ruippeixotog.scalafbp.component.core.Repeat
+import net.ruippeixotog.scalafbp.runtime.GraphTemplate._
 
 class NetworkBrokerSpec extends AkkaSpecification {
+
+  class SingleNodeGraph extends GraphTemplate {
+    val n1 = node[String](1, 1)
+  }
+
+  class TwoNodeGraph extends GraphTemplate {
+    val n1 = node[String](1, 1)
+    val n2 = node[String](1, 1)
+  }
+
+  class ChainGraph[A: PortDataMarshaller] extends GraphTemplate {
+    val inNode = node(Repeat)
+    val outNode = node[A](1, 1)
+    initial("init") ~> (inNode, "in")
+    (inNode, "out") ~> (outNode, 1)
+  }
+
+  abstract class BrokerInstance extends Scope {
+    def graph: GraphTemplate
+    def enableExternal = false
+
+    val lifeProbe, outputProbe = TestProbe()
+    val broker = system.actorOf(NetworkBroker.props(graph, false, outputProbe.ref))
+    lifeProbe.watch(broker)
+  }
 
   "A NetworkBroker" should {
 
     "manage the lifetime of the components" in {
 
-      "instantiate all components in a graph when the network starts" in {
-        val probe = TestProbe()
+      "instantiate all components in a graph when the network starts" in new BrokerInstance {
+        lazy val probe = TestProbe()
+
         def instanceProps(id: String) = Props(new Actor {
           probe.ref ! s"started_$id"
           def receive = Actor.ignoringBehavior
         })
-        val comp1 = DummyComponent[String](1, 1, instanceProps("n1"))
-        val comp2 = DummyComponent[String](1, 1, instanceProps("n2"))
 
-        val graph = Graph(
-          "graph1",
-          nodes = Map(
-            "n1" -> Node(comp1, edges = Map("out1" -> Map(PortRef("n2", "in1") -> Edge()))),
-            "n2" -> Node(comp2, initials = Map("in1" -> Initial(JsString("aaa"))))))
+        lazy val graph = new TwoNodeGraph {
+          behavior(n1, instanceProps("n1"))
+          behavior(n2, instanceProps("n2"))
+        }
 
-        system.actorOf(NetworkBroker.props(graph, false, system.deadLetters))
         probe must receive.allOf("started_n1", "started_n2")
       }
 
-      "terminate the network when all components terminate" in {
-        todo
+      "terminate the network when all components terminate" in new BrokerInstance {
+
+        lazy val instanceProps = Props(new Actor {
+          context.stop(self)
+          def receive = Actor.ignoringBehavior
+        })
+
+        lazy val graph = new TwoNodeGraph {
+          behavior(n1, instanceProps)
+          behavior(n2, instanceProps)
+        }
+
+        lifeProbe must receive.like { case Terminated(`broker`) => ok }
       }
     }
 
     "handle initial values correctly" in {
 
-      "forward initial values into components as Incoming messages" in {
-        todo
+      "forward initial values into components as Incoming messages" in new BrokerInstance {
+        lazy val graph = new SingleNodeGraph {
+          val n1Probe = probeBehavior(n1)
+          initial("aaa") ~> (n1, 1)
+        }
+
+        graph.n1Probe must receive(Incoming("in1", "aaa"))
       }
 
-      "handle correctly type conversions" in {
-        todo
-      }
+      "fail if an initial value cannot be converted to the target type" in new BrokerInstance {
+        lazy val graph = new SingleNodeGraph {
+          val n1Probe = probeBehavior(n1)
+          initial(4) ~> (n1, 1)
+        }
 
-      "fail if an initial value cannot be converted to the target type" in {
-        todo
+        lifeProbe must receive.like { case Terminated(`broker`) => ok }
+        outputProbe must receive.like {
+          case NetworkBroker.Error(msg) => msg mustEqual "Could not deserialize initial data for n1[in1]"
+        }.afterOthers
       }
     }
 
     "handle data emitted by components correctly" in {
 
-      "forward Outgoing messages to connected ports as Incoming messages" in {
-        todo
+      "forward Outgoing messages to connected ports as Incoming messages" in new BrokerInstance {
+        lazy val graph = new ChainGraph[String] {
+          val outProbe = probeBehavior(outNode)
+        }
+
+        graph.outProbe must receive(Incoming("in1", "init")).afterOthers
       }
 
-      "do type conversions between two ports if needed" in {
-        todo
+      "do type conversions between two ports if needed" in new BrokerInstance {
+        case class MyData(n: Int, data: String)
+        implicit lazy val jf = lift({ js: JsValue => MyData(1, js.asInstanceOf[JsString].value) })
+
+        lazy val graph = new ChainGraph[MyData] {
+          val outProbe = probeBehavior(outNode)
+        }
+
+        graph.outProbe must receive(Incoming("in1", MyData(1, "init"))).afterOthers
       }
 
-      "fail if the outgoing data cannot be converted into the target type" in {
-        todo
+      "fail if the outgoing data cannot be converted into the target type" in new BrokerInstance {
+        case class MyData(n: Int, data: String)
+        implicit lazy val jf = lift({ js: JsValue => MyData(js.asInstanceOf[JsNumber].value.intValue, "data") })
+
+        lazy val graph = new ChainGraph[MyData]
+
+        lifeProbe must receive.like { case Terminated(`broker`) => ok }
+        outputProbe must receive.like {
+          case NetworkBroker.Error(msg) => msg mustEqual
+            "Could not deserialize \"init\" (sent by n1[out]) to a format supported by n2[in1]"
+        }.afterOthers
       }
 
-      "fail if the outgoing data comes from an unknown actor" in {
-        todo
+      "fail if the outgoing data comes from an unknown actor" in new BrokerInstance {
+        lazy val graph = new SingleNodeGraph
+
+        broker ! Outgoing("out1", "data")
+
+        lifeProbe must receive.like { case Terminated(`broker`) => ok }
+        outputProbe must receive.like {
+          case NetworkBroker.Error(msg) => msg mustEqual "Internal runtime error"
+        }.afterOthers
       }
     }
 
