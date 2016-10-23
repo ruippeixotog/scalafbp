@@ -19,8 +19,8 @@ class NetworkBrokerSpec extends AkkaSpecification {
           probe.ref ! s"started_$id"
           def receive = Actor.ignoringBehavior
         })
-        val comp1 = DummyComponent(1, 1, instanceProps("n1"))
-        val comp2 = DummyComponent(1, 1, instanceProps("n2"))
+        val comp1 = DummyComponent[String](1, 1, instanceProps("n1"))
+        val comp2 = DummyComponent[String](1, 1, instanceProps("n2"))
 
         val graph = Graph(
           "graph1",

@@ -18,13 +18,13 @@ class RoutingTableSpec extends Specification {
          __/
   */
   val graph = Graph("test1", Map(
-    "n1" -> Node(DummyComponent(0, 1), edges = Map(
+    "n1" -> Node(DummyComponent[String](0, 1), edges = Map(
       "out1" -> Map(ref("n2", "in1") -> edgeData, ref("n3", "in1") -> edgeData))),
-    "n2" -> Node(DummyComponent(1, 2), edges = Map(
+    "n2" -> Node(DummyComponent[String](1, 2), edges = Map(
       "out1" -> Map(ref("n4", "in1") -> edgeData))),
-    "n3" -> Node(DummyComponent(2, 1), edges = Map(
+    "n3" -> Node(DummyComponent[String](2, 1), edges = Map(
       "out1" -> Map(ref("n4", "in1") -> edgeData))),
-    "n4" -> Node(DummyComponent(1, 0))))
+    "n4" -> Node(DummyComponent[String](1, 0))))
 
   val table = RoutingTable(graph)
 
@@ -127,8 +127,8 @@ class RoutingTableSpec extends Specification {
 
     "be updated correctly when a new graph is loaded" in {
       val newGraph = Graph("test1", Map(
-        "a" -> Node(DummyComponent(0, 1), edges = Map("out1" -> Map(ref("b", "in1") -> edgeData))),
-        "b" -> Node(DummyComponent(1, 0))))
+        "a" -> Node(DummyComponent[String](0, 1), edges = Map("out1" -> Map(ref("b", "in1") -> edgeData))),
+        "b" -> Node(DummyComponent[String](1, 0))))
 
       val newTable = table.loadGraph(newGraph)
       newTable.routes(ref("a", "out1")).toSet mustEqual Set(ref("b", "in1"))

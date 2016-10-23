@@ -153,8 +153,8 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends AkkaSpecification {
     val missingKey = NodeKey("testgraph", "missingnode")
     val noPathKeys = List(NodeKey("missinggraph", "testnode"))
 
-    val existingEntity = Node(DummyComponent(2, 2))
-    val newEntity = Node(DummyComponent(1, 1))
+    val existingEntity = Node(DummyComponent[String](2, 2))
+    val newEntity = Node(DummyComponent[String](1, 1))
     def updated(node: Node) = node.copy(metadata = Map("a" -> JsNull))
 
     override def init(store: ActorRef) = {
@@ -255,7 +255,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends AkkaSpecification {
     "update the full graph as new contents are added" in {
       val store = system.actorOf(Props(new GraphStore))
       store ! Create(GraphKey("testgraph"), Graph("testgraph"))
-      store ! Create(NodeKey("testgraph", "testnode"), Node(DummyComponent(1, 1)))
+      store ! Create(NodeKey("testgraph", "testnode"), Node(DummyComponent[String](1, 1)))
       store ! Create(EdgeKey("testgraph", PortRef("testnode", "out1"), PortRef("testnode", "in1")), Edge())
       store ! Create(InitialKey("testgraph", PortRef("testnode", "in1")), Initial(JsTrue))
       store ! Create(PublicInPortKey("testgraph", "pubIn1"), PublicPort(PortRef("testnode", "in1")))
@@ -264,7 +264,7 @@ class GraphStoreSpec(implicit env: ExecutionEnv) extends AkkaSpecification {
       val fullGraph = Graph(
         "testgraph",
         nodes = Map("testnode" -> Node(
-          DummyComponent(1, 1),
+          DummyComponent[String](1, 1),
           edges = Map("out1" -> Map(PortRef("testnode", "in1") -> Edge())),
           initials = Map("in1" -> Initial(JsTrue)))),
         publicIn = Map("pubIn1" -> PublicPort(PortRef("testnode", "in1"))),
