@@ -23,8 +23,8 @@ lazy val runtime = projectAt("scalafbp-runtime").
     libraryDependencies ++= Seq(
       "ch.megard"                     %% "akka-http-cors"                      % "0.1.7",
       "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
-      "com.github.julien-truffaut"    %% "monocle-core"                        % "1.2.2",
-      "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.2.2",
+      "com.github.julien-truffaut"    %% "monocle-core"                        % "1.3.1",
+      "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.3.1",
       "com.typesafe"                   % "config"                              % "1.3.1",
       "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
       "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.11",
@@ -34,7 +34,7 @@ lazy val runtime = projectAt("scalafbp-runtime").
       "com.typesafe.akka"             %% "akka-stream"                         % "2.4.11",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
       "org.clapper"                   %% "classutil"                           % "1.0.13",
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "2.4.11-SNAPSHOT"       % "test"))
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.1.0"            % "test"))
 
 // -- testkit for components --
 
@@ -43,8 +43,8 @@ lazy val testkit = projectAt("scalafbp-testkit").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "2.4.11-SNAPSHOT",
-      "org.specs2"                    %% "specs2-core"                         % "3.8.5"))
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.1.0",
+      "org.specs2"                    %% "specs2-core"                         % "3.8.5.1"))
 
 // -- component packages --
 
@@ -77,7 +77,7 @@ lazy val scalafbp = projectAt("scalafbp").
   settings(dockerPackagingSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"        % "runtime"))
+      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"            % "runtime"))
 
 lazy val root = (project in file(".")).
   aggregate(core, testkit, coreComponents, mathComponents, streamComponents, pplComponents, runtime, scalafbp).
