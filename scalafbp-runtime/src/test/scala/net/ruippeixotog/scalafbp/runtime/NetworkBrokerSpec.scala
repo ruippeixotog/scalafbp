@@ -7,10 +7,11 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import net.ruippeixotog.akka.testkit.specs2.mutable.AkkaSpecification
-import net.ruippeixotog.scalafbp.component.ComponentActor.{ Incoming, Outgoing }
-import net.ruippeixotog.scalafbp.component.PortDataMarshaller
+import net.ruippeixotog.scalafbp.component.ComponentActor._
+import net.ruippeixotog.scalafbp.component.{ ComponentActor, PortDataMarshaller }
 import net.ruippeixotog.scalafbp.component.core.Repeat
 import net.ruippeixotog.scalafbp.runtime.GraphTemplate._
+import net.ruippeixotog.scalafbp.runtime.NetworkBroker.Disconnect
 
 class NetworkBrokerSpec extends AkkaSpecification {
 
@@ -19,8 +20,7 @@ class NetworkBrokerSpec extends AkkaSpecification {
   }
 
   class TwoNodeGraph extends GraphTemplate {
-    val n1 = node[String](1, 1)
-    val n2 = node[String](1, 1)
+    val n1, n2 = node[String](1, 1)
   }
 
   class ChainGraph[A: PortDataMarshaller] extends GraphTemplate {
@@ -28,6 +28,12 @@ class NetworkBrokerSpec extends AkkaSpecification {
     val outNode = node[A](1, 1)
     initial("init") ~> (inNode, "in")
     (inNode, "out") ~> (outNode, 1)
+  }
+
+  class TwoToTwoGraph extends GraphTemplate {
+    val nodeIn1, nodeIn2, nodeOut1, nodeOut2 = node[String](1, 1)
+    (nodeIn1, 1) ~> (nodeOut1, 1) <~ (nodeIn2, 1)
+    (nodeIn1, 1) ~> (nodeOut2, 1) <~ (nodeIn2, 1)
   }
 
   abstract class BrokerInstance extends Scope {
@@ -147,12 +153,38 @@ class NetworkBrokerSpec extends AkkaSpecification {
 
     "handle in and out port connections correctly (non-dynamic mode)" in {
 
-      "close a route when its source port is closed by the source component" in {
-        todo
+      "close a route when its source port is closed by the source component" in new BrokerInstance {
+        lazy val graph = new TwoNodeGraph {
+          val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
+          val n2Probe = probeBehavior(n2)
+          (n1, 1) ~> (n2, 1)
+        }
+
+        graph.n1Proxy ! Outgoing("out1", "init")
+        graph.n2Probe must receive(Incoming("in1", "init")).afterOthers
+
+        graph.n1Proxy ! DisconnectOutPort("out1")
+        graph.n1Probe must receive(OutPortDisconnected("out1")).afterOthers
+
+        graph.n1Proxy ! Outgoing("out1", "init")
+        graph.n2Probe must not(receive(Incoming("in1", "init")).afterOthers)
       }
 
-      "close a route when its target port is closed by the target component" in {
-        todo
+      "close a route when its target port is closed by the target component" in new BrokerInstance {
+        lazy val graph = new TwoNodeGraph {
+          val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
+          val (n2Probe, n2Proxy) = probeBehaviorWithProxyRef(n2)
+          (n1, 1) ~> (n2, 1)
+        }
+
+        graph.n1Proxy ! Outgoing("out1", "init")
+        graph.n2Probe must receive(Incoming("in1", "init")).afterOthers
+
+        graph.n2Proxy ! DisconnectInPort("in1")
+        graph.n1Probe must receive(InPortDisconnected("in1")).afterOthers
+
+        graph.n1Proxy ! Outgoing("out1", "init")
+        graph.n2Probe must not(receive(Incoming("in1", "init")).afterOthers)
       }
 
       "close source ports when all of its target ports are closed" in {

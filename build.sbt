@@ -34,7 +34,7 @@ lazy val runtime = projectAt("scalafbp-runtime").
       "com.typesafe.akka"             %% "akka-stream"                         % "2.4.11",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
       "org.clapper"                   %% "classutil"                           % "1.0.13",
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.1.0"            % "test"))
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.1.1-SNAPSHOT"   % "test"))
 
 // -- testkit for components --
 

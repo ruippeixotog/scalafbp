@@ -1,7 +1,7 @@
 package net.ruippeixotog.scalafbp.runtime
 
-import akka.actor.{ Actor, ActorSystem, Props }
-import akka.testkit.TestProbe
+import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
+import akka.testkit.{ TestActorRef, TestProbe }
 import monocle.macros.GenLens
 import spray.json._
 
@@ -9,7 +9,8 @@ import net.ruippeixotog.scalafbp.component.{ Component, DummyComponent, PortData
 import net.ruippeixotog.scalafbp.runtime.GraphLenses._
 
 class GraphTemplate(implicit system: ActorSystem) {
-  var graph = Graph("testgraph")
+  def id = "testgraph"
+  var graph = Graph(id)
 
   trait AsRef[A] {
     def inRef(ref: A): PortRef
@@ -27,7 +28,7 @@ class GraphTemplate(implicit system: ActorSystem) {
   }
 
   def inRef[R](ref: R)(implicit asRef: AsRef[R]) = asRef.inRef(ref)
-  def outRef[R](ref: R)(implicit asRef: AsRef[R]) = asRef.inRef(ref)
+  def outRef[R](ref: R)(implicit asRef: AsRef[R]) = asRef.outRef(ref)
 
   def node[A: PortDataMarshaller](comp: Component): String = {
     val nodeId = s"n${graph.nodes.size + 1}"
@@ -53,16 +54,33 @@ class GraphTemplate(implicit system: ActorSystem) {
     }(graph)
   }
 
-  def probeBehavior(nodeId: String): TestProbe = {
+  def probeBehaviorWithProxyRef(nodeId: String): (TestProbe, ActorRef) = {
     val probe = TestProbe()
-    behavior(nodeId, Props(new Actor {
+
+    val proxy = system.actorOf(Props(new Actor {
+      var componentRef: ActorRef = null
+      var brokerRef: ActorRef = null
+      var msgs: Vector[Any] = Vector.empty
+
       def receive = {
-        case msg if sender() == probe.ref => context.parent ! msg
-        case msg => probe.ref.forward(msg)
+        case (compRef: ActorRef, brkRef: ActorRef) =>
+          componentRef = compRef
+          brokerRef = brkRef
+          msgs.foreach(brokerRef.tell(_, componentRef))
+
+        case msg if componentRef == null => msgs :+= msg
+        case msg => brokerRef.tell(msg, componentRef)
       }
     }))
-    probe
+
+    behavior(nodeId, Props(new Actor {
+      proxy ! (self, context.parent)
+      def receive = { case msg => probe.ref.forward(msg) }
+    }))
+    (probe, proxy)
   }
+
+  def probeBehavior(nodeId: String): TestProbe = probeBehaviorWithProxyRef(nodeId)._1
 
   def initial[A: JsonWriter](data: A) = Initial(data.toJson)
 
