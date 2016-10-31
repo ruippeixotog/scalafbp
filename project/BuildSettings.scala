@@ -59,7 +59,10 @@ object BuildSettings {
       }
     },
 
-    packageBin in Compile <<= (packageBin in Compile).dependsOn(buildUi))
+    packageBin in Compile := {
+      buildUi.value
+      (packageBin in Compile).value
+    })
 
   lazy val dockerPackagingSettings = Seq(
     mainClass in Compile := Some("net.ruippeixotog.scalafbp.Server"),

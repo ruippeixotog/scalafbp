@@ -9,7 +9,7 @@ lazy val core = projectAt("scalafbp-core").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.12",
       "io.reactivex"                  %% "rxscala"                             % "0.26.3",
       "io.spray"                      %% "spray-json"                          % "1.3.2"))
 
@@ -21,20 +21,20 @@ lazy val runtime = projectAt("scalafbp-runtime").
   settings(uiBuildSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.megard"                     %% "akka-http-cors"                      % "0.1.7",
+      "ch.megard"                     %% "akka-http-cors"                      % "0.1.8",
       "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
       "com.github.julien-truffaut"    %% "monocle-core"                        % "1.3.1",
       "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.3.1",
       "com.typesafe"                   % "config"                              % "1.3.1",
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.11",
-      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.11",
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.12",
+      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.12",
       "com.typesafe.akka"             %% "akka-http-experimental"              % "2.4.11",
       "com.typesafe.akka"             %% "akka-http-spray-json-experimental"   % "2.4.11",
-      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.11",
-      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.11",
+      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.12",
+      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.12",
       "io.spray"                      %% "spray-json"                          % "1.3.2",
       "org.clapper"                   %% "classutil"                           % "1.0.13",
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.1.1-SNAPSHOT"   % "test"))
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.2.0-SNAPSHOT"   % "test"))
 
 // -- testkit for components --
 
