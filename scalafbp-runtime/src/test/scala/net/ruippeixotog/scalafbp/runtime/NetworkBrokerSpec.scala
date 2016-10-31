@@ -1,5 +1,7 @@
 package net.ruippeixotog.scalafbp.runtime
 
+import scala.language.reflectiveCalls
+
 import akka.actor.{ Actor, Props, Terminated }
 import akka.testkit.TestProbe
 import org.specs2.specification.Scope
@@ -8,10 +10,9 @@ import spray.json._
 
 import net.ruippeixotog.akka.testkit.specs2.mutable.AkkaSpecification
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.{ ComponentActor, PortDataMarshaller }
+import net.ruippeixotog.scalafbp.component.PortDataMarshaller
 import net.ruippeixotog.scalafbp.component.core.Repeat
 import net.ruippeixotog.scalafbp.runtime.GraphTemplate._
-import net.ruippeixotog.scalafbp.runtime.NetworkBroker.Disconnect
 
 class NetworkBrokerSpec extends AkkaSpecification {
 
