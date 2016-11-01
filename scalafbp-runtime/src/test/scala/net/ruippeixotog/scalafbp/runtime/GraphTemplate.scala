@@ -1,7 +1,7 @@
 package net.ruippeixotog.scalafbp.runtime
 
-import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
-import akka.testkit.{ TestActorRef, TestProbe }
+import akka.actor._
+import akka.testkit.TestProbe
 import monocle.macros.GenLens
 import spray.json._
 
@@ -71,6 +71,8 @@ class GraphTemplate(implicit system: ActorSystem) {
         case msg if componentRef == null => msgs :+= msg
         case msg => brokerRef.tell(msg, componentRef)
       }
+
+      override def postStop() = Option(componentRef).foreach(_ ! PoisonPill)
     }))
 
     behavior(nodeId, Props(new Actor {

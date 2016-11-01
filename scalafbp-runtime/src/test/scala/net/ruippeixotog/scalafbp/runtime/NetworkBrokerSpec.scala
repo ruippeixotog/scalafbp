@@ -35,12 +35,12 @@ abstract class NetworkBrokerSpec extends AkkaSpecification {
     (inNode1, 1) ~> (outNode2, 1) <~ (inNode2, 1)
   }
 
-  abstract class BrokerInstance extends Scope {
+  abstract class BrokerInstance(dynamic: Boolean = false) extends Scope {
     def graph: GraphTemplate
     def enableExternal = false
 
     val lifeProbe, outputProbe = TestProbe()
-    val broker = system.actorOf(NetworkBroker.props(graph, false, outputProbe.ref))
+    val broker = system.actorOf(NetworkBroker.props(graph, dynamic, outputProbe.ref))
     lifeProbe.watch(broker)
   }
 }
