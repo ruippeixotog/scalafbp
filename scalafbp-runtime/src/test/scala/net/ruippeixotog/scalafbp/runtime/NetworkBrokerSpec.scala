@@ -24,6 +24,10 @@ class NetworkBrokerSpec extends AkkaSpecification {
     val n1, n2 = node[String](1, 1)
   }
 
+  class ThreeNodeGraph extends GraphTemplate {
+    val n1, n2, n3 = node[String](1, 1)
+  }
+
   class ChainGraph[A: PortDataMarshaller] extends GraphTemplate {
     val inNode = node(Repeat)
     val outNode = node[A](1, 1)
@@ -32,9 +36,9 @@ class NetworkBrokerSpec extends AkkaSpecification {
   }
 
   class TwoToTwoGraph extends GraphTemplate {
-    val nodeIn1, nodeIn2, nodeOut1, nodeOut2 = node[String](1, 1)
-    (nodeIn1, 1) ~> (nodeOut1, 1) <~ (nodeIn2, 1)
-    (nodeIn1, 1) ~> (nodeOut2, 1) <~ (nodeIn2, 1)
+    val inNode1, inNode2, outNode1, outNode2 = node[String](1, 1)
+    (inNode1, 1) ~> (outNode1, 1) <~ (inNode2, 1)
+    (inNode1, 1) ~> (outNode2, 1) <~ (inNode2, 1)
   }
 
   abstract class BrokerInstance extends Scope {
@@ -188,16 +192,50 @@ class NetworkBrokerSpec extends AkkaSpecification {
         graph.n2Probe must not(receive(Incoming("in1", "init")).afterOthers)
       }
 
-      "close source ports when all of its target ports are closed" in {
-        todo
+      "close source ports when all of its target ports are closed" in new BrokerInstance {
+        lazy val graph = new TwoToTwoGraph {
+          val (_, out1Proxy) = probeBehaviorWithProxyRef(outNode1)
+          val (_, out2Proxy) = probeBehaviorWithProxyRef(outNode2)
+          val in1Probe = probeBehavior(inNode1)
+        }
+
+        graph.out1Proxy ! DisconnectInPort("in1")
+        graph.in1Probe must not(receive(OutPortDisconnected("out1")).afterOthers)
+
+        graph.out2Proxy ! DisconnectInPort("in1")
+        graph.in1Probe must receive(OutPortDisconnected("out1")).afterOthers
       }
 
-      "close target ports when all of its source ports are closed" in {
-        todo
+      "close target ports when all of its source ports are closed" in new BrokerInstance {
+        lazy val graph = new TwoToTwoGraph {
+          val (_, in1Proxy) = probeBehaviorWithProxyRef(inNode1)
+          val (_, in2Proxy) = probeBehaviorWithProxyRef(inNode2)
+          val out1Probe = probeBehavior(outNode1)
+        }
+
+        graph.in1Proxy ! DisconnectOutPort("out1")
+        graph.out1Probe must not(receive(InPortDisconnected("in1")).afterOthers)
+
+        graph.in2Proxy ! DisconnectOutPort("out1")
+        graph.out1Probe must receive(InPortDisconnected("in1")).afterOthers
       }
 
-      "close all the ports of a component when it terminates" in {
-        todo
+      "close all the ports of a component when it terminates" in new BrokerInstance {
+
+        lazy val instanceProps = Props(new Actor {
+          context.stop(self)
+          def receive = Actor.ignoringBehavior
+        })
+
+        lazy val graph = new ThreeNodeGraph {
+          (n1, 1) ~> (n2, 1) ~> (n3, 1)
+          val n1Probe = probeBehavior(n1)
+          behavior(n2, instanceProps)
+          val n3Probe = probeBehavior(n3)
+        }
+
+        graph.n1Probe must receive(OutPortDisconnected("out1")).afterOthers
+        graph.n3Probe must receive(InPortDisconnected("in1")).afterOthers
       }
     }
 
