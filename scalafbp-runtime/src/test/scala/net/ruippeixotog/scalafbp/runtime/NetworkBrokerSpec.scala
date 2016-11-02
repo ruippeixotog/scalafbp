@@ -1,5 +1,6 @@
 package net.ruippeixotog.scalafbp.runtime
 
+import akka.actor.Props
 import akka.testkit.TestProbe
 import org.specs2.specification.Scope
 import spray.json.DefaultJsonProtocol._
@@ -37,10 +38,12 @@ abstract class NetworkBrokerSpec extends AkkaSpecification {
 
   abstract class BrokerInstance(dynamic: Boolean = false) extends Scope {
     def graph: GraphTemplate
-    def enableExternal = false
+    def externalProbe: TestProbe = null
 
     val lifeProbe, outputProbe = TestProbe()
-    val broker = system.actorOf(NetworkBroker.props(graph, dynamic, outputProbe.ref))
+    val broker = system.actorOf(Props(
+      new NetworkBroker(graph, dynamic, outputProbe.ref, Option(externalProbe).map(_.ref))))
+
     lifeProbe.watch(broker)
   }
 }

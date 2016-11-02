@@ -7,6 +7,7 @@ import spray.json._
 
 import net.ruippeixotog.scalafbp.component.{ Component, DummyComponent, PortDataMarshaller }
 import net.ruippeixotog.scalafbp.runtime.GraphLenses._
+import net.ruippeixotog.scalafbp.runtime.GraphTemplate.ExternalRef
 
 class GraphTemplate(implicit system: ActorSystem) {
   def id = "testgraph"
@@ -85,6 +86,7 @@ class GraphTemplate(implicit system: ActorSystem) {
   def probeBehavior(nodeId: String): TestProbe = probeBehaviorWithProxyRef(nodeId)._1
 
   def initial[A: JsonWriter](data: A) = Initial(data.toJson)
+  def external(publicId: String) = ExternalRef(publicId)
 
   implicit class PimpedInitial(val initial: Initial) {
     def ~>[R: AsRef](tgt: R) = {
@@ -99,6 +101,11 @@ class GraphTemplate(implicit system: ActorSystem) {
       tgt
     }
 
+    def ~>(tgt: ExternalRef) = {
+      graph = publicOutPortLens(tgt.publicId).set(Some(PublicPort(outRef(ref))))(graph)
+      tgt
+    }
+
     def <~[R2: AsRef](src: R2) = {
       graph = edgeLens(outRef(src), inRef(ref)).set(Some(Edge()))(graph)
       src
@@ -108,9 +115,28 @@ class GraphTemplate(implicit system: ActorSystem) {
       graph = initialLens(inRef(ref)).set(Some(initial))(graph)
       initial
     }
+
+    def <~(src: ExternalRef) = {
+      graph = publicInPortLens(src.publicId).set(Some(PublicPort(inRef(ref))))(graph)
+      src
+    }
+  }
+
+  implicit class PimpedExternal(val ext: ExternalRef) {
+    def ~>[R2: AsRef](tgt: R2) = {
+      graph = publicInPortLens(ext.publicId).set(Some(PublicPort(inRef(tgt))))(graph)
+      tgt
+    }
+
+    def <~[R2: AsRef](src: R2) = {
+      graph = publicOutPortLens(ext.publicId).set(Some(PublicPort(outRef(src))))(graph)
+      src
+    }
   }
 }
 
 object GraphTemplate {
+  case class ExternalRef(publicId: String)
+
   implicit def template2Graph(t: GraphTemplate): Graph = t.graph
 }
