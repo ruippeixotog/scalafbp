@@ -27,10 +27,17 @@ class GraphComponentSpec extends ComponentSpec {
       "n2" -> Node(Output)),
     publicIn = Map("pubIn" -> PublicPort(PortRef("n1", "in"))))
 
-  val errorGraph = Graph(
-    "graph2",
+  val nodeErrorGraph = Graph(
+    "graph3",
     nodes = Map("n1" -> Node(ErrorComponent)),
     publicIn = Map("pubIn" -> PublicPort(PortRef("n1", "in"))))
+
+  val internalErrorGraph = Graph(
+    "graph4",
+    nodes = Map(
+      "n1" -> Node(Repeat, edges = Map("out" -> Map(PortRef("n2", "func") -> Edge()))),
+      "n2" -> Node(MakeFunction)),
+    publicIn = Map("pubFunc" -> PublicPort(PortRef("n1", "in"))))
 
   "A GraphComponent" should {
 
@@ -62,15 +69,20 @@ class GraphComponentSpec extends ComponentSpec {
       this must terminate()
     }
 
-    "propagate correctly Output message" in new GraphComponentInstance(outputGraph) {
+    "propagate correctly Output messages" in new GraphComponentInstance(outputGraph) {
       component.inPorts("pubIn").send(JsNumber(2))
       this must sendOutput("2")
       this must sendOutput("2")
     }
 
-    "terminate with a ProcessError if one of the inner components fail" in new GraphComponentInstance(errorGraph) {
+    "terminate with a node error if one of the inner components fail" in new GraphComponentInstance(nodeErrorGraph) {
       component.inPorts("pubIn").send(JsTrue)
       this must terminateWithProcessError()
+    }
+
+    "terminate with a node error if an internal error occurs" in new GraphComponentInstance(internalErrorGraph) {
+      component.inPorts("pubFunc").send(JsTrue)
+      this must terminateWithProcessError() // cannot deserialize JsTrue to string
     }
   }
 }
