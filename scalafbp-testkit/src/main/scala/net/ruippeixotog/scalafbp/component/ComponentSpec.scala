@@ -30,10 +30,10 @@ abstract class ComponentSpec extends AkkaSpecification {
 
     private[this] val outPortProbes = component.outPorts.map(_.id -> TestProbe()).toMap
     private[this] val outputProbe = TestProbe()
-    private[this] val processErrorProbe = TestProbe()
+    private[this] val errorProbe = TestProbe()
 
     private[this] val brokerActor = TestActorRef(new Actor {
-      override val supervisorStrategy = new TestBrokerSupervisorStrategy(processErrorProbe)
+      override val supervisorStrategy = new TestBrokerSupervisorStrategy(errorProbe)
 
       def receive = {
         case msg @ Outgoing(port, data) => outPortProbes(port).ref.forward(msg)
@@ -110,9 +110,9 @@ abstract class ComponentSpec extends AkkaSpecification {
       componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
     }
 
-    def terminateWithProcessError(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
+    def terminateWithError(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
       componentWatcherProbe.expectTerminated(componentActor) must not(throwAn[Exception])
-      processErrorProbe must receive[Throwable]
+      errorProbe must receive[Throwable]
     }
   }
 }
@@ -124,7 +124,7 @@ object ComponentSpec {
   }
 
   // TODO find a way not to replicate this here (original is in `scalafbp-runtime`)
-  class TestBrokerSupervisorStrategy(processErrorProbe: TestProbe) extends OneForOneStrategy()(stoppingDecider) {
+  class TestBrokerSupervisorStrategy(errorProbe: TestProbe) extends OneForOneStrategy()(stoppingDecider) {
 
     override def handleFailure(
       context: ActorContext,
@@ -134,7 +134,7 @@ object ComponentSpec {
       children: Iterable[ChildRestartStats]): Boolean = {
       cause match {
         case _: ActorKilledException | _: DeathPactException =>
-        case ex: Exception => processErrorProbe.ref ! cause
+        case ex: Exception => errorProbe.ref ! cause
       }
       super.handleFailure(context, child, cause, stats, children)
     }

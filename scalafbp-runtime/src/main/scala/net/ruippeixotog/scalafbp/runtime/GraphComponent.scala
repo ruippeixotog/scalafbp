@@ -27,9 +27,9 @@ case class GraphComponent(graph: Graph) extends Component {
       case msg: ComponentMessage => brokerActor ! External(msg)
       case External(msg) => context.parent ! msg
 
-      case msg: Output => context.parent ! msg
-      case msg: NetworkBroker.Error => throw new Exception(msg.msg)
-      case msg: NetworkBroker.ProcessError => throw new Exception(msg.msg)
+      case msg: NetworkBroker.NodeCommand => context.parent ! msg.cmd
+      case msg: NetworkBroker.NodeError => throw new Exception(msg.msg)
+      case msg: NetworkBroker.NetworkError => throw new Exception(msg.msg)
 
       case Terminated(`brokerActor`) => context.stop(self)
     }

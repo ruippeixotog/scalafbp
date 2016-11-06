@@ -7,7 +7,7 @@ import spray.json.DefaultJsonProtocol._
 import spray.json.JsString
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.runtime.NetworkBroker.{ Connect, Data, Disconnect, ProcessError }
+import net.ruippeixotog.scalafbp.runtime.NetworkBroker._
 
 class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
 
@@ -66,19 +66,22 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
           Disconnect(graph.id, Some(PortRef(graph.n2, "out1")), PortRef(graph.n3, "in1")))
       }
 
-      "send Output messages when a components emits output" in new BrokerInstance {
+      "send NodeCommand messages when a component emits output or a command" in new BrokerInstance {
         lazy val graph = new SingleNodeGraph {
           val (_, n1Proxy) = probeBehaviorWithProxyRef(n1)
         }
 
         graph.n1Proxy ! Message("some text")
-        outputProbe must receive(Message("some text")).afterOthers
+        outputProbe must receive(NodeCommand(graph.id, graph.n1, Message("some text"))).afterOthers
 
-        graph.n1Proxy ! PreviewURL("cute gif", "http://example.com/image.gif")
-        outputProbe must receive(PreviewURL("cute gif", "http://example.com/image.gif"))
+        graph.n1Proxy ! PreviewURL("my gif", "http://example.com/image.gif")
+        outputProbe must receive(NodeCommand(graph.id, graph.n1, PreviewURL("my gif", "http://example.com/image.gif")))
+
+        graph.n1Proxy ! ChangeIcon("fa-cog")
+        outputProbe must receive(NodeCommand(graph.id, graph.n1, ChangeIcon("fa-cog")))
       }
 
-      "send ProcessError messages when a component fails" in new BrokerInstance {
+      "send NodeError messages when a component fails" in new BrokerInstance {
 
         lazy val instanceProps = Props(new Actor {
           def receive = {
@@ -92,7 +95,7 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
           initial("boom") ~> (n1, 1)
         }
 
-        outputProbe must receive(ProcessError(graph.id, graph.n1, "test error")).afterOthers
+        outputProbe must receive(NodeError(graph.id, graph.n1, "test error")).afterOthers
       }
     }
   }

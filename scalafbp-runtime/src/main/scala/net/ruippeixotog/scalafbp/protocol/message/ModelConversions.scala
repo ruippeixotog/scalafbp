@@ -87,21 +87,26 @@ object ToMessageConversions {
       None)
   }
 
-  implicit class OutputConvertible(val output: ComponentActor.Output) extends AnyVal with ToMessageConvertible {
-    def toMessage = output match {
+  implicit class NodeCommandConvertible(val cmd: NetworkBroker.NodeCommand)
+      extends AnyVal with ToMessageConvertible {
+
+    def toMessage = cmd.cmd match {
       case ComponentActor.Message(msg) => Output(msg, Some("message"), None)
       case ComponentActor.PreviewURL(msg, url) => Output(msg, Some("previewurl"), Some(url))
+      case ComponentActor.ChangeIcon(newIcon) => Icon(cmd.node, newIcon, cmd.graph)
     }
   }
 
-  implicit class ErrorConvertible(val error: NetworkBroker.Error) extends AnyVal with ToMessageConvertible {
-    def toMessage = Error(error.msg)
-  }
-
-  implicit class ProcessErrorConvertible(val error: NetworkBroker.ProcessError)
+  implicit class NodeErrorConvertible(val error: NetworkBroker.NodeError)
       extends AnyVal with ToMessageConvertible {
 
     def toMessage = ProcessError(error.node, error.msg, error.graph)
+  }
+
+  implicit class InternalErrorConvertible(val error: NetworkBroker.NetworkError)
+      extends AnyVal with ToMessageConvertible {
+
+    def toMessage = Error(error.msg)
   }
 }
 

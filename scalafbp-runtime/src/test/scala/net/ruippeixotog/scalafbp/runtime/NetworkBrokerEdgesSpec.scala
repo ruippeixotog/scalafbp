@@ -41,7 +41,7 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
 
         lifeProbe must receive.like { case Terminated(`broker`) => ok }
         outputProbe must receive.like {
-          case NetworkBroker.Error(msg) => msg mustEqual
+          case NetworkBroker.NetworkError(msg) => msg mustEqual
             "Could not deserialize \"init\" (sent by n1[out]) to a format supported by n2[in1]"
         }.afterOthers
       }
@@ -53,7 +53,7 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
 
         lifeProbe must receive.like { case Terminated(`broker`) => ok }
         outputProbe must receive.like {
-          case NetworkBroker.Error(msg) => msg mustEqual "Internal runtime error"
+          case NetworkBroker.NetworkError(msg) => msg mustEqual "Internal runtime error"
         }.afterOthers
       }
     }

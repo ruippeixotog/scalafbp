@@ -8,7 +8,6 @@ import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
 import com.typesafe.config.Config
 
-import net.ruippeixotog.scalafbp.component.ComponentActor
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessage
 import net.ruippeixotog.scalafbp.protocol.message.NetworkMessages._
 import net.ruippeixotog.scalafbp.protocol.message.ToMessageConversions._
@@ -25,13 +24,15 @@ class NetworkProtocolActor(graphStore: ActorRef, runtimeConfig: Config) extends 
     context.watch(inner)
 
     def receive = {
-      case output: ComponentActor.Output => inner ! output.toMessage
-      case error: NetworkBroker.Error => inner ! error.toMessage
-      case error: NetworkBroker.ProcessError => inner ! error.toMessage
       case activity: NetworkBroker.Activity => inner ! activity.toMessage
+      case cmd: NetworkBroker.NodeCommand => inner ! cmd.toMessage
+      case error: NetworkBroker.NodeError => inner ! error.toMessage
+      case error: NetworkBroker.NetworkError => inner ! error.toMessage
+
       case finished: NetworkController.Finished => inner ! finished.toMessage
 
       case Terminated(`inner`) => context.stop(self)
+
       case msg => log.warn(s"Cannot proxy unexpected message $msg to client")
     }
   }

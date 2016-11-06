@@ -73,14 +73,14 @@ class BayesianSuiteSpec extends ComponentSpec with AutoTerminateSpec {
       BayesianSuite.posteriorPort must emitWhich(_ must beCloseTo(diceSuite.observed(6, 4, 8).pmf.toJsonPmf))
     }
 
-    "terminate with a ProcessError if no data is received on the prior port" in new ComponentInstance {
+    "terminate with an error if no data is received on the prior port" in new ComponentInstance {
       BayesianSuite.priorPort.close()
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
-    "terminate with a ProcessError if no data is received on the function port" in new ComponentInstance {
+    "terminate with an error if no data is received on the function port" in new ComponentInstance {
       BayesianSuite.lhoodPort.close()
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
     "terminate when all ports are closed after some messages are received" in new ComponentInstance {

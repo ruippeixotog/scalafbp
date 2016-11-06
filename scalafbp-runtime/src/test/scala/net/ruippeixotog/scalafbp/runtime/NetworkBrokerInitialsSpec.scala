@@ -30,7 +30,7 @@ class NetworkBrokerInitialsSpec extends NetworkBrokerSpec {
 
         lifeProbe must receive.like { case Terminated(`broker`) => ok }
         outputProbe must receive.like {
-          case NetworkBroker.Error(msg) => msg mustEqual "Could not deserialize initial data for n1[in1]"
+          case NetworkBroker.NetworkError(msg) => msg mustEqual "Could not deserialize initial data for n1[in1]"
         }.afterOthers
       }
     }

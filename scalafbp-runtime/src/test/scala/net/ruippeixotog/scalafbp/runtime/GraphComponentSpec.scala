@@ -77,12 +77,12 @@ class GraphComponentSpec extends ComponentSpec {
 
     "terminate with a node error if one of the inner components fail" in new GraphComponentInstance(nodeErrorGraph) {
       component.inPorts("pubIn").send(JsTrue)
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
     "terminate with a node error if an internal error occurs" in new GraphComponentInstance(internalErrorGraph) {
       component.inPorts("pubFunc").send(JsTrue)
-      this must terminateWithProcessError() // cannot deserialize JsTrue to string
+      this must terminateWithError() // cannot deserialize JsTrue to string
     }
   }
 }

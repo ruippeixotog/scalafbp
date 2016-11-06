@@ -6,7 +6,7 @@ import akka.actor.{ Actor, ActorLogging, ActorRef, Props, Terminated }
 import spray.json.JsValue
 
 import net.ruippeixotog.scalafbp.component.ComponentActor._
-import net.ruippeixotog.scalafbp.component.{ InPort, OutPort }
+import net.ruippeixotog.scalafbp.component.{ ComponentActor, InPort, OutPort }
 import net.ruippeixotog.scalafbp.runtime.GraphStore.{ EdgeKey, GraphKey, InitialKey, NodeKey }
 import net.ruippeixotog.scalafbp.runtime.NetworkBroker._
 
@@ -32,7 +32,7 @@ class NetworkBroker(
     nodeActors.find(_._2 == nodeActor).map(_._1)
 
   override def supervisorStrategy = new NetworkBrokerSupervisorStrategy({ (child, cause) =>
-    outputActor ! ProcessError(graph.id, actorNodeIds(child).get, cause.getMessage)
+    outputActor ! NodeError(graph.id, actorNodeIds(child).get, cause.getMessage)
   })
 
   def serialize(portRef: PortRef, data: Any): Option[JsValue] =
@@ -69,7 +69,7 @@ class NetworkBroker(
     error(msg.capitalize, s"Network failed: $msg")
 
   def error(msg: String, logMsg: String): Unit = {
-    outputActor ! Error(msg)
+    outputActor ! NetworkError(msg)
     log.error(logMsg)
     context.stop(self)
   }
@@ -211,7 +211,8 @@ class NetworkBroker(
         else context.become(brokerBehavior(activeNodes - 1, routingTable.closeNode(node)))
       }
 
-    case output: Output => outputActor ! output
+    case cmd: ClientCommand =>
+      withKnownSender(cmd) { node => outputActor ! NodeCommand(graph.id, node, cmd) }
   }
 
   def receive = {
@@ -239,8 +240,9 @@ object NetworkBroker {
   case class Disconnect(graph: String, src: Option[PortRef], tgt: PortRef) extends Activity
   case class Data(graph: String, src: Option[PortRef], tgt: PortRef, data: JsValue) extends Activity
 
-  case class Error(msg: String)
-  case class ProcessError(graph: String, node: String, msg: String)
+  case class NodeCommand(graph: String, node: String, cmd: ComponentActor.ClientCommand)
+  case class NodeError(graph: String, node: String, msg: String)
+  case class NetworkError(msg: String)
 
   case class External(msg: ComponentMessage)
 

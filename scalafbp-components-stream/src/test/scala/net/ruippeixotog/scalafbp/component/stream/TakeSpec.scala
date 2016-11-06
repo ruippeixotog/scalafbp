@@ -41,9 +41,9 @@ class TakeSpec extends ComponentSpec with AutoTerminateSpec {
       this must terminate()
     }
 
-    "terminate with a ProcessError if no number of elements is sent" in new ComponentInstance {
+    "terminate with an error if no number of elements is sent" in new ComponentInstance {
       Take.nPort.close()
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
     "terminate when all ports are closed after some messages are received" in new ComponentInstance {

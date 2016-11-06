@@ -57,10 +57,10 @@ class MapConcatSpec extends ComponentSpec with AutoTerminateSpec {
       MapConcat.outPort must emitNothing
     }
 
-    "terminate with a ProcessError if the function does not return an array" in new ComponentInstance {
+    "terminate with an error if the function does not return an array" in new ComponentInstance {
       MapConcat.funcPort.send("return x")
       MapConcat.inPort.send(JsNumber(0))
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
     terminateItselfWhenAllInPortsAreClosed

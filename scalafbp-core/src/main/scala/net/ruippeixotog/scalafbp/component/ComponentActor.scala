@@ -61,9 +61,11 @@ object ComponentActor {
   case class InPortDisconnected(port: String) extends ComponentMessage
   case class OutPortDisconnected(port: String) extends ComponentMessage
 
-  sealed trait Output
+  sealed trait ClientCommand
+  sealed trait Output extends ClientCommand
   case class Message(message: String) extends Output
   case class PreviewURL(message: String, url: String) extends Output
+  case class ChangeIcon(newIcon: String) extends ClientCommand
 
   sealed trait TerminationRule
   case object OnAllInputPortsClosed extends TerminationRule

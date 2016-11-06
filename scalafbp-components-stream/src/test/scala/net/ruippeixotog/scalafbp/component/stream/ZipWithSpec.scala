@@ -50,9 +50,9 @@ class ZipWithSpec extends ComponentSpec with AutoTerminateSpec {
       ZipWith.outPort must emit(JsObject("a" -> JsNull, "b" -> JsFalse))
     }
 
-    "terminate with a ProcessError if no data is received on the selector port" in new ComponentInstance {
+    "terminate with an error if no data is received on the selector port" in new ComponentInstance {
       ZipWith.selectorPort.close()
-      this must terminateWithProcessError()
+      this must terminateWithError()
     }
 
     "terminate itself when the first input stream is closed" in new ComponentInstance {
