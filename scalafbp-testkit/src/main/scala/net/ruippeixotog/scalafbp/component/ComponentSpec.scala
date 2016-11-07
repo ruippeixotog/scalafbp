@@ -38,7 +38,7 @@ abstract class ComponentSpec extends AkkaSpecification {
       def receive = {
         case msg @ Outgoing(port, data) => outPortProbes(port).ref.forward(msg)
         case msg @ DisconnectOutPort(port) => outPortProbes(port).ref.forward(msg)
-        case msg: ComponentActor.Output => outputProbe.ref.forward(msg)
+        case msg: ComponentActor.ClientCommand => outputProbe.ref.forward(msg)
       }
     })
 
@@ -104,6 +104,10 @@ abstract class ComponentSpec extends AkkaSpecification {
 
     def sendOutput(msg: String): Matcher[ComponentInstance] = { instance: ComponentInstance =>
       outputProbe must receive(ComponentActor.Message(msg))
+    }
+
+    def sendChangeIcon(icon: String): Matcher[ComponentInstance] = { instance: ComponentInstance =>
+      outputProbe must receive(ComponentActor.ChangeIcon(icon))
     }
 
     def terminate(max: FiniteDuration = 1.seconds): Matcher[ComponentInstance] = { instance: ComponentInstance =>
