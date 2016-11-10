@@ -27,7 +27,7 @@ object BuildSettings {
 
     libraryDependencies ++= Seq(
       "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"            % "test",
-      "org.specs2"                    %% "specs2-core"                         % "3.8.5.1"          % "test"),
+      "org.specs2"                    %% "specs2-core"                         % "3.8.6"            % "test"),
 
     scalacOptions ++= Seq(
       "-feature",
