@@ -17,7 +17,7 @@ class NetworkBroker(
     externalActorOpt: Option[ActorRef]) extends Actor with ActorLogging {
 
   def createNodeActor(id: String, node: Node): ActorRef = {
-    val actorName = s"node-$id".filter(_.isLetterOrDigit)
+    val actorName = s"node-${id.replaceAll("[^a-zA-Z0-9]", "_")}"
     val actorRef = context.actorOf(node.component.instanceProps, actorName)
     context.watch(actorRef)
     actorRef
