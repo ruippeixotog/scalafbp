@@ -14,6 +14,8 @@ class NetworkBrokerExternalsSpec extends NetworkBrokerSpec {
     "handle correctly communication with external ports" in {
 
       "route messages targeted at public ports to the external actor" in new BrokerInstance {
+        def _graph = graph
+
         override lazy val externalProbe = TestProbe()
 
         lazy val graph = new SingleNodeGraph {
@@ -26,6 +28,8 @@ class NetworkBrokerExternalsSpec extends NetworkBrokerSpec {
       }
 
       "route messages from the external actor to public source ports" in new BrokerInstance {
+        def _graph = graph
+
         override lazy val externalProbe = TestProbe()
 
         lazy val graph = new SingleNodeGraph {
@@ -38,6 +42,8 @@ class NetworkBrokerExternalsSpec extends NetworkBrokerSpec {
       }
 
       "propagate public port disconnection commands to internal components" in new BrokerInstance {
+        def _graph = graph
+
         override lazy val externalProbe = TestProbe()
 
         lazy val graph = new SingleNodeGraph {
@@ -53,6 +59,8 @@ class NetworkBrokerExternalsSpec extends NetworkBrokerSpec {
       }
 
       "propagate internal source and target disconnections to the external actor" in new BrokerInstance {
+        def _graph = graph
+
         override lazy val externalProbe = TestProbe()
 
         lazy val graph = new SingleNodeGraph {

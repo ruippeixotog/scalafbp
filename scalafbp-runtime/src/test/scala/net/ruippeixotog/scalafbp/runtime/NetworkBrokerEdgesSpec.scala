@@ -15,6 +15,8 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
     "handle data emitted by components correctly" in {
 
       "forward Outgoing messages to connected ports as Incoming messages" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new ChainGraph[String] {
           val outProbe = probeBehavior(outNode)
         }
@@ -23,6 +25,8 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
       }
 
       "do type conversions between two ports if needed" in new BrokerInstance {
+        def _graph = graph
+
         case class MyData(n: Int, data: String)
         implicit lazy val jf = lift({ js: JsValue => MyData(1, js.asInstanceOf[JsString].value) })
 
@@ -34,6 +38,8 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
       }
 
       "fail if the outgoing data cannot be converted into the target type" in new BrokerInstance {
+        def _graph = graph
+
         case class MyData(n: Int, data: String)
         implicit lazy val jf = lift({ js: JsValue => MyData(js.asInstanceOf[JsNumber].value.intValue, "data") })
 
@@ -47,6 +53,8 @@ class NetworkBrokerEdgesSpec extends NetworkBrokerSpec {
       }
 
       "fail if the outgoing data comes from an unknown actor" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph
 
         broker ! Outgoing("out1", "data")

@@ -18,6 +18,8 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
     "update the network when the underlying graph changes (dynamic mode)" in {
 
       "create new nodes when a node created event is received" in new BrokerInstance(true) {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph
 
         val probe = TestProbe()
@@ -32,6 +34,7 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
       }
 
       "terminate the respective component when a node deleted event is received" in new BrokerInstance(true) {
+        def _graph = graph
 
         lazy val probe = TestProbe()
         lazy val instanceProps = Props(new Actor {
@@ -50,6 +53,8 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
       }
 
       "open a route when an edge created event is received" in new BrokerInstance(true) {
+        def _graph = graph
+
         lazy val graph = new TwoNodeGraph {
           val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
           val n2Probe = probeBehavior(n2)
@@ -64,6 +69,8 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
       }
 
       "close the respective route when an edge deleted event is received" in new BrokerInstance(true) {
+        def _graph = graph
+
         lazy val graph = new TwoNodeGraph {
           val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
           val n2Probe = probeBehavior(n2)
@@ -79,6 +86,8 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
       }
 
       "send an initial value when an initial created event is received" in new BrokerInstance(true) {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph {
           val n1Probe = probeBehavior(n1)
         }
@@ -88,6 +97,8 @@ class NetworkBrokerUpdatesSpec extends NetworkBrokerSpec {
       }
 
       "stop the network if a graph deleted event is received" in new BrokerInstance(true) {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph
 
         broker ! Event(Deleted(GraphKey(graph.id), null))

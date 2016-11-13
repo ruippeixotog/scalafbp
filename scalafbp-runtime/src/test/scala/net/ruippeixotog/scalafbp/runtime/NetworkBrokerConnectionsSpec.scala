@@ -10,6 +10,8 @@ import net.ruippeixotog.scalafbp.component.ComponentActor._
 class NetworkBrokerConnectionsSpec extends NetworkBrokerSpec {
 
   def closeRouteOnSourceClosed(dynamic: Boolean) = new BrokerInstance(dynamic) {
+    def _graph = graph
+
     lazy val graph = new TwoNodeGraph {
       val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
       val n2Probe = probeBehavior(n2)
@@ -28,6 +30,8 @@ class NetworkBrokerConnectionsSpec extends NetworkBrokerSpec {
   }
 
   def closeRouteOnTargetClosed(dynamic: Boolean) = new BrokerInstance(dynamic) {
+    def _graph = graph
+
     lazy val graph = new TwoNodeGraph {
       val (n1Probe, n1Proxy) = probeBehaviorWithProxyRef(n1)
       val (n2Probe, n2Proxy) = probeBehaviorWithProxyRef(n2)
@@ -46,6 +50,8 @@ class NetworkBrokerConnectionsSpec extends NetworkBrokerSpec {
   }
 
   def closeSourceOnAllTargetsClosed(dynamic: Boolean) = new BrokerInstance(dynamic) {
+    def _graph = graph
+
     lazy val graph = new TwoToTwoGraph {
       val (_, out1Proxy) = probeBehaviorWithProxyRef(outNode1)
       val (_, out2Proxy) = probeBehaviorWithProxyRef(outNode2)
@@ -60,6 +66,8 @@ class NetworkBrokerConnectionsSpec extends NetworkBrokerSpec {
   }
 
   def closeTargetOnAllSourcesClosed(dynamic: Boolean) = new BrokerInstance(dynamic) {
+    def _graph = graph
+
     lazy val graph = new TwoToTwoGraph {
       val (_, in1Proxy) = probeBehaviorWithProxyRef(inNode1)
       val (_, in2Proxy) = probeBehaviorWithProxyRef(inNode2)
@@ -74,6 +82,7 @@ class NetworkBrokerConnectionsSpec extends NetworkBrokerSpec {
   }
 
   def closePortsOnTermination(dynamic: Boolean) = new BrokerInstance(dynamic) {
+    def _graph = graph
 
     lazy val graph = new ThreeNodeGraph {
       (n1, 1) ~> (n2, 1) ~> (n3, 1)

@@ -15,7 +15,7 @@ object BuildSettings {
   lazy val basicSettings = Seq(
     organization := "net.ruippeixotog",
     version := "0.1.0-SNAPSHOT",
-    scalaVersion := "2.11.8")
+    scalaVersion := "2.12.0")
 
   lazy val commonSettings = basicSettings ++ Seq(
     scalariformPreferences := scalariformPreferences.value

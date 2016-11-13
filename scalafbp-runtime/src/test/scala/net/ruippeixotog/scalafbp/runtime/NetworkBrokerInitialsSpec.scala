@@ -14,6 +14,8 @@ class NetworkBrokerInitialsSpec extends NetworkBrokerSpec {
     "handle initial values correctly" in {
 
       "forward initial values into components as Incoming messages" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph {
           val n1Probe = probeBehavior(n1)
           initial("aaa") ~> (n1, 1)
@@ -23,6 +25,8 @@ class NetworkBrokerInitialsSpec extends NetworkBrokerSpec {
       }
 
       "fail if an initial value cannot be converted to the target type" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph {
           val n1Probe = probeBehavior(n1)
           initial(4) ~> (n1, 1)

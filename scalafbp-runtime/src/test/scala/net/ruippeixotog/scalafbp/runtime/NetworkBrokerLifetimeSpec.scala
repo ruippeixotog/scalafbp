@@ -12,8 +12,9 @@ class NetworkBrokerLifetimeSpec extends NetworkBrokerSpec {
     "manage the lifetime of the components" in {
 
       "instantiate all components in a graph when the network starts" in new BrokerInstance {
-        lazy val probe = TestProbe()
+        def _graph = graph
 
+        lazy val probe = TestProbe()
         def instanceProps(id: String) = Props(new Actor {
           probe.ref ! s"started_$id"
           def receive = Actor.ignoringBehavior
@@ -28,6 +29,7 @@ class NetworkBrokerLifetimeSpec extends NetworkBrokerSpec {
       }
 
       "terminate the network when all components terminate" in new BrokerInstance {
+        def _graph = graph
 
         lazy val instanceProps = Props(new Actor {
           context.stop(self)

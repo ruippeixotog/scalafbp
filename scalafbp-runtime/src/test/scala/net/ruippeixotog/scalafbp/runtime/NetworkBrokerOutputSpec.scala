@@ -16,6 +16,8 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
     "send relevant information to the output actor" in {
 
       "send Connect, Data and Disconnect messages when an initial value is sent" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph {
           val n1Probe = probeBehavior(n1)
           initial("aaa") ~> (n1, 1)
@@ -27,6 +29,8 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
       }
 
       "send Connect messages for every edge when the network starts" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new ThreeNodeGraph {
           (n1, 1) ~> (n2, 1) ~> (n3, 1)
         }
@@ -37,6 +41,8 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
       }
 
       "send Data messages each time a message is routed" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new TwoNodeGraph {
           val (_, n1Proxy) = probeBehaviorWithProxyRef(n1)
           (n1, 1) ~> (n2, 1)
@@ -52,6 +58,8 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
       }
 
       "send Disconnect messages for every closed route" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new ThreeNodeGraph {
           val (_, n2Proxy) = probeBehaviorWithProxyRef(n2)
           (n1, 1) ~> (n2, 1) ~> (n3, 1)
@@ -67,6 +75,8 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
       }
 
       "send NodeCommand messages when a component emits output or a command" in new BrokerInstance {
+        def _graph = graph
+
         lazy val graph = new SingleNodeGraph {
           val (_, n1Proxy) = probeBehaviorWithProxyRef(n1)
         }
@@ -82,6 +92,7 @@ class NetworkBrokerOutputSpec extends NetworkBrokerSpec {
       }
 
       "send NodeError messages when a component fails" in new BrokerInstance {
+        def _graph = graph
 
         lazy val instanceProps = Props(new Actor {
           def receive = {

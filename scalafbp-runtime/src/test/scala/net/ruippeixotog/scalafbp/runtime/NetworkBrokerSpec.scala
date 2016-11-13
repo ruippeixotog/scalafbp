@@ -37,12 +37,12 @@ abstract class NetworkBrokerSpec extends AkkaSpecification {
   }
 
   abstract class BrokerInstance(dynamic: Boolean = false) extends Scope {
-    def graph: GraphTemplate
+    def _graph: GraphTemplate
     def externalProbe: TestProbe = null
 
     val lifeProbe, outputProbe = TestProbe()
     val broker = system.actorOf(Props(
-      new NetworkBroker(graph, dynamic, outputProbe.ref, Option(externalProbe).map(_.ref))))
+      new NetworkBroker(_graph, dynamic, outputProbe.ref, Option(externalProbe).map(_.ref))))
 
     lifeProbe.watch(broker)
   }
