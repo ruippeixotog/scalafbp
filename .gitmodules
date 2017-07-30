@@ -1,4 +1,4 @@
-[submodule "scalafbp-runtime/src/main/webapp"]
-	path = scalafbp-runtime/src/main/webapp
+[submodule "runtime/src/main/webapp"]
+	path = runtime/src/main/webapp
 	url = https://github.com/ruippeixotog/noflo-ui.git
 	branch = scalafbp

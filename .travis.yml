@@ -14,7 +14,7 @@ after_success:
   - sbt ++$TRAVIS_SCALA_VERSION coverageReport coverageAggregate coveralls
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
       docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-      sbt ++$TRAVIS_SCALA_VERSION scalafbp/docker:publish;
+      sbt ++$TRAVIS_SCALA_VERSION bundle/docker:publish;
       fi
 cache:
   directories:
