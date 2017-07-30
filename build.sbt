@@ -4,7 +4,7 @@ inThisBuild(Seq(
   organization := "net.ruippeixotog",
   homepage := Some(url("https://github.com/ruippeixotog/scalafbp")),
   licenses := Seq("MIT License" -> url("http://www.opensource.org/licenses/mit-license.php")),
-  version := "0.1.0-SNAPSHOT"))
+  version := "0.2.0-SNAPSHOT"))
 
 // -- core component classes --
 
