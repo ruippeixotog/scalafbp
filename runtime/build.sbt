@@ -23,6 +23,7 @@ buildUi := {
     "NOFLO_OAUTH_PROVIDER" -> "/oauth",
     "NOFLO_OAUTH_GATE" -> "/oauth",
     "NOFLO_OAUTH_SERVICE_USER" -> "/oauth",
+    "NOFLO_OAUTH_CLIENT_REDIRECT" -> "http://localhost:3569",
     "NOFLO_REGISTRY_SERVICE" -> "/registry",
     "NOFLO_APP_NAME" -> "ScalaFBP UI",
     "NOFLO_APP_TITLE" -> "ScalaFBP Development Environment",

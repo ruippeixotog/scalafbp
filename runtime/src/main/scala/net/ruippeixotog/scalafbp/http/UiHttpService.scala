@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.server.Directives._
 import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 trait UiHttpService {
 
@@ -22,7 +23,7 @@ trait UiHttpService {
     if(disableUi) reject
     else {
       pathPrefix("oauth") {
-        path("login" / "authorize" / "github_public") {
+        path("login" / "oauth" / "authorize") {
           parameter("redirect_uri") { encodedUri =>
             val uri = Uri(URLDecoder.decode(encodedUri, "UTF-8"))
             redirect(uri.withQuery(Query("code" -> dummyUser)), Found)
@@ -32,7 +33,9 @@ trait UiHttpService {
           complete(Map("token" -> dummyToken))
         } ~
         path("user") {
-          complete(Map("name" -> dummyUserName))
+          complete(JsObject(
+            "name" -> JsString(dummyUserName),
+            "github" -> JsObject.empty))
         }
       } ~
       pathEndOrSingleSlash { getFromResource("ui/index.html") } ~
