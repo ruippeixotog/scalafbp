@@ -6,7 +6,7 @@ jdk:
 services:
   - docker
 before_install:
-  - nvm install 6
+  - nvm install 8
   - npm install -g grunt
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean coverage test
