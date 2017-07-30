@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives._
 import akka.stream.Materializer
-import ch.megard.akka.http.cors.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import fommil.sjs.FamilyFormats._
 
 import net.ruippeixotog.scalafbp.protocol.registry.Runtime

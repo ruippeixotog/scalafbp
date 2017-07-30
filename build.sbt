@@ -9,9 +9,9 @@ lazy val core = projectAt("scalafbp-core").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.12",
-      "io.reactivex"                  %% "rxscala"                             % "0.26.4",
-      "io.spray"                      %% "spray-json"                          % "1.3.2"))
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.19",
+      "io.reactivex"                  %% "rxscala"                             % "0.26.5",
+      "io.spray"                      %% "spray-json"                          % "1.3.3"))
 
 // -- runtime --
 
@@ -21,20 +21,20 @@ lazy val runtime = projectAt("scalafbp-runtime").
   settings(uiBuildSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.megard"                     %% "akka-http-cors"                      % "0.1.9",
-      "com.github.fommil"             %% "spray-json-shapeless"                % "1.3.0",
-      "com.github.julien-truffaut"    %% "monocle-core"                        % "1.3.2",
-      "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.3.2",
+      "ch.megard"                     %% "akka-http-cors"                      % "0.2.1",
+      "com.github.fommil"             %% "spray-json-shapeless"                % "1.4.0",
+      "com.github.julien-truffaut"    %% "monocle-core"                        % "1.4.0",
+      "com.github.julien-truffaut"    %% "monocle-macro"                       % "1.4.0",
       "com.typesafe"                   % "config"                              % "1.3.1",
-      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.12",
-      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.12",
-      "com.typesafe.akka"             %% "akka-http"                           % "10.0.0-RC2",
-      "com.typesafe.akka"             %% "akka-http-spray-json"                % "10.0.0-RC2",
-      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.12",
-      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.12",
-      "io.spray"                      %% "spray-json"                          % "1.3.2",
-      "org.clapper"                   %% "classutil"                           % "1.1.0",
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.2.0"            % "test"))
+      "com.typesafe.akka"             %% "akka-actor"                          % "2.4.19",
+      "com.typesafe.akka"             %% "akka-contrib"                        % "2.4.19",
+      "com.typesafe.akka"             %% "akka-http"                           % "10.0.9",
+      "com.typesafe.akka"             %% "akka-http-spray-json"                % "10.0.9",
+      "com.typesafe.akka"             %% "akka-slf4j"                          % "2.4.19",
+      "com.typesafe.akka"             %% "akka-stream"                         % "2.4.19",
+      "io.spray"                      %% "spray-json"                          % "1.3.3",
+      "org.clapper"                   %% "classutil"                           % "1.1.2",
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.2.1"            % "test"))
 
 // -- testkit for components --
 
@@ -43,7 +43,7 @@ lazy val testkit = projectAt("scalafbp-testkit").
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.2.0",
+      "net.ruippeixotog"              %% "akka-testkit-specs2"                 % "0.2.1",
       "org.specs2"                    %% "specs2-core"                         % "3.8.6"))
 
 // -- component packages --
@@ -77,7 +77,7 @@ lazy val scalafbp = projectAt("scalafbp").
   settings(dockerPackagingSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback"                 % "logback-classic"                     % "1.1.7"            % "runtime"))
+      "ch.qos.logback"                 % "logback-classic"                     % "1.2.3"            % "runtime"))
 
 lazy val root = (project in file(".")).
   aggregate(core, testkit, coreComponents, mathComponents, streamComponents, pplComponents, runtime, scalafbp).
